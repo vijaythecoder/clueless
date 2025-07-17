@@ -24,3 +24,24 @@ yarn-error.log
 /.zed
 /dist
 .DS_Store
+
+# Security & Certificates - Never commit these!
+*.cer
+*.p12
+*.mobileprovision
+*.keychain
+*.keychain-db
+**/certificates/
+**/signing/
+.env.local
+.env.*.local
+*.pem
+*.key.pub
+keychain_password.txt
+apple_certificates/
+
+# Build artifacts that may contain sensitive data
+/build/certificates/
+/build/signing/
+/build/*.cer
+/build/*.p12

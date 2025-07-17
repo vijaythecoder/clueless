@@ -113,6 +113,6 @@ This project is licensed under the [MIT License](LICENSE) with the [Commons Clau
 - ✅ **Modify it** to fit your needs
 - ✅ **Self-host it** on your own infrastructure
 - ❌ **Cannot sell** as a hosted service or SaaS product
-- ❌ **Cannot resell** without a commercial agreement
+- ❌ **Cannot resell** 
 
-For commercial licensing inquiries, please reach out via [Discord](https://discord.gg/PhPMPrxcKw) or create an issue.
+For any questions, please reach out via [Discord](https://discord.gg/PhPMPrxcKw).

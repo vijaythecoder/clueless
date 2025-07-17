@@ -87,15 +87,66 @@ Unsure where to begin contributing? You can start by looking through these issue
    php artisan migrate --database=nativephp
    ```
 
-5. **Add your OpenAI API key to `.env`:**
+5. **Add your API keys to `.env`:**
    ```
-   OPENAI_API_KEY=your-api-key-here
+   OPENAI_API_KEY=your-openai-api-key-here
+   NATIVEPHP_APP_ID=com.yourcompany.yourapp
    ```
 
 6. **Run the development server:**
    ```bash
    composer dev
    ```
+
+## 🔐 Code Signing & Security
+
+### For Contributors (Development)
+
+**You don't need Apple Developer certificates for contributing!** The project automatically creates unsigned builds for development, which are perfect for testing your changes.
+
+If you see warnings like this, it's completely normal:
+```
+⚠️  No code signing certificate found - creating unsigned build
+💡 To create signed builds, install an Apple Developer certificate in Keychain
+```
+
+### Security Guidelines
+
+**❌ NEVER commit these:**
+- `.env` file with real credentials
+- Certificate files (`.cer`, `.p12`)
+- Apple Developer credentials
+- Real API keys
+
+**✅ SAFE to commit:**
+- `.env.example` (template only)
+- Source code
+- Build scripts (auto-detect certificates)
+- Documentation
+
+### Security Hardening
+
+This project follows security best practices:
+
+**Minimal Entitlements**: The `entitlements.plist` file uses the principle of least privilege, requesting only:
+- `com.apple.security.device.audio-input` - For audio input access
+- `com.apple.security.device.microphone` - For microphone access
+- `com.apple.security.device.screen-capture` - Required for ScreenCaptureKit system audio capture
+
+**Removed Dangerous Entitlements**: We explicitly avoid these high-risk permissions:
+- `com.apple.security.cs.allow-jit` - Unnecessary JIT compilation
+- `com.apple.security.cs.allow-unsigned-executable-memory` - Memory injection risk
+- `com.apple.security.cs.disable-executable-page-protection` - Memory corruption risk  
+- `com.apple.security.cs.disable-library-validation` - Library injection risk
+
+### Before Committing
+
+Always verify no sensitive data:
+```bash
+git status
+git diff --cached
+grep -r "your-actual-api-key" . --exclude-dir=vendor
+```
 
 ## Pull Request Process
 

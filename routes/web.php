@@ -45,6 +45,25 @@ Route::get('/api/openai/status', function () {
     ]);
 })->name('api.openai.status');
 
+
+// Screen Recording Permission API Routes
+Route::prefix('api/permissions')->group(function () {
+    Route::get('/screen-recording/status', function () {
+        $permissionService = app(\App\Services\AudioCapturePermissionService::class);
+        return response()->json($permissionService->getPermissionStatus());
+    })->name('api.permissions.screen-recording.status');
+    
+    Route::post('/screen-recording/request', function () {
+        $permissionService = app(\App\Services\AudioCapturePermissionService::class);
+        return response()->json($permissionService->requestScreenRecordingPermission());
+    })->name('api.permissions.screen-recording.request');
+    
+    Route::get('/screen-recording/check', function () {
+        $permissionService = app(\App\Services\AudioCapturePermissionService::class);
+        return response()->json($permissionService->checkScreenRecordingPermission());
+    })->name('api.permissions.screen-recording.check');
+});
+
 // Open external URL in default browser (for NativePHP)
 Route::post('/api/open-external', function (\Illuminate\Http\Request $request) {
     $url = $request->input('url');

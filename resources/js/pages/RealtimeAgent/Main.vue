@@ -185,10 +185,19 @@
                 <button
                     @click="handleDashboardClick"
                     :disabled="isActive"
-                    class="text-xs font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                    class="flex items-center gap-1.5 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                     :class="{ 'cursor-not-allowed opacity-50': isActive }"
                 >
-                    Call History
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
+                        />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5v6m4-6v6m4-6v6" />
+                    </svg>
+                    Dashboard
                 </button>
                 <button
                     @click="toggleSession"
@@ -326,7 +335,7 @@
                     <span class="font-medium">{{ isOverlayMode ? 'ON' : 'OFF' }}</span>
                 </button>
 
-                <!-- Call History Link -->
+                <!-- Dashboard Link -->
                 <button
                     @click="
                         handleDashboardClick();
@@ -336,7 +345,7 @@
                     class="w-full border-t border-gray-100 pt-3 text-left text-xs text-gray-600 dark:border-gray-800 dark:text-gray-400"
                     :class="{ 'cursor-not-allowed opacity-50': isActive }"
                 >
-                    View Call History →
+                    View Dashboard →
                 </button>
             </div>
         </div>
@@ -1067,7 +1076,7 @@ watch(topics, (newTopics) => {
 
 const handleDashboardClick = async () => {
     if (isActive.value) {
-        const confirmEnd = confirm('You have an active call. Are you sure you want to end the call and view call history?');
+        const confirmEnd = confirm('You have an active call. Are you sure you want to end the call and view dashboard?');
         if (confirmEnd) {
             await stopSession();
             router.visit('/conversations');

@@ -3,13 +3,13 @@
 use App\Models\ConversationSession;
 use App\Models\ConversationTranscript;
 use App\Models\ConversationInsight;
-use App\Services\ApiKeyService;
+use Tests\Traits\MocksOnboarding;
+
+uses(MocksOnboarding::class);
 
 beforeEach(function () {
-    // Mock API key service to return true (API key exists) for all conversation tests
-    $mockApiKeyService = Mockery::mock(ApiKeyService::class);
-    $mockApiKeyService->shouldReceive('hasApiKey')->andReturn(true);
-    $this->app->instance(ApiKeyService::class, $mockApiKeyService);
+    // Mock complete onboarding flow (API key + permissions + completion) for all conversation tests
+    $this->mockCompletedOnboarding();
     
     // Create a test conversation session for some tests
     $this->session = ConversationSession::create([

@@ -23,10 +23,10 @@
                 <!-- Progress Indicator -->
                 <div v-if="showSteps" class="mb-6 flex items-center justify-center space-x-2">
                     <div
-                        v-for="i in 2"
+                        v-for="i in 3"
                         :key="i"
                         :class="[
-                            'h-1.5 w-20 rounded-full transition-all duration-300',
+                            'h-1.5 w-16 rounded-full transition-all duration-300',
                             i <= currentStep ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-200 dark:bg-gray-700',
                         ]"
                     ></div>
@@ -136,8 +136,138 @@
                             </div>
                         </div>
 
-                        <!-- Step 2: GitHub Star -->
+                        <!-- Step 2: Screen Recording Permission -->
                         <div v-else-if="currentStep === 2">
+                            <div class="text-center">
+                                <div class="mb-4 inline-flex rounded-full bg-gray-100 p-3 dark:bg-gray-700">
+                                    <svg class="h-8 w-8 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                                        />
+                                    </svg>
+                                </div>
+                                <h2 class="mb-2 text-xl font-medium text-gray-900 dark:text-white">Screen Recording Permission</h2>
+                                <p class="mb-6 text-sm text-gray-600 dark:text-gray-400">
+                                    Clueless needs screen recording permission to capture system audio during meetings. This permission is required
+                                    for the app to work properly.
+                                </p>
+
+                                <div class="mb-6">
+                                    <div v-if="permissionStatus === 'granted'" class="rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
+                                        <div class="flex items-center">
+                                            <svg
+                                                class="h-5 w-5 text-green-600 dark:text-green-400"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <p class="ml-2 text-sm font-medium text-green-800 dark:text-green-200">Permission granted!</p>
+                                        </div>
+                                    </div>
+
+                                    <div v-else-if="permissionStatus === 'denied'" class="rounded-lg bg-yellow-50 p-4 dark:bg-yellow-900/20">
+                                        <div class="flex items-center">
+                                            <svg
+                                                class="h-5 w-5 text-yellow-600 dark:text-yellow-400"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
+                                                />
+                                            </svg>
+                                            <p class="ml-2 text-sm font-medium text-yellow-800 dark:text-yellow-200">Permission required</p>
+                                        </div>
+                                    </div>
+
+                                    <div v-else-if="permissionStatus === 'checking'" class="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+                                        <div class="flex items-center">
+                                            <svg class="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path
+                                                    class="opacity-75"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                ></path>
+                                            </svg>
+                                            <p class="ml-2 text-sm font-medium text-blue-800 dark:text-blue-200">Checking permission...</p>
+                                        </div>
+                                    </div>
+
+                                    <div v-else-if="permissionStatus === 'error'" class="rounded-lg bg-red-50 p-4 dark:bg-red-900/20">
+                                        <div class="flex items-center">
+                                            <svg class="h-5 w-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
+                                            </svg>
+                                            <p class="ml-2 text-sm font-medium text-red-800 dark:text-red-200">{{ permissionMessage }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    v-if="permissionStatus === 'denied' || permissionStatus === 'error'"
+                                    @click="requestPermission"
+                                    :disabled="isRequestingPermission"
+                                    class="mb-4 inline-flex items-center rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+                                >
+                                    <svg v-if="isRequestingPermission" class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                    <svg v-else class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                                        />
+                                    </svg>
+                                    {{ isRequestingPermission ? 'Requesting...' : 'Grant Permission' }}
+                                </button>
+                            </div>
+
+                            <div class="mt-6 flex items-center justify-between">
+                                <button
+                                    @click="currentStep = 1"
+                                    class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                >
+                                    Back
+                                </button>
+                                <button
+                                    @click="currentStep = 3"
+                                    :disabled="permissionStatus !== 'granted'"
+                                    :class="[
+                                        'rounded-lg px-6 py-2.5 text-sm font-medium transition-all',
+                                        permissionStatus === 'granted'
+                                            ? 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'
+                                            : 'cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600',
+                                    ]"
+                                >
+                                    Continue
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: GitHub Star -->
+                        <div v-else-if="currentStep === 3">
                             <div class="text-center">
                                 <div class="mb-4 inline-flex rounded-full bg-gray-100 p-3 dark:bg-gray-700">
                                     <svg class="h-8 w-8 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
@@ -175,7 +305,7 @@
 
                             <div class="mt-6 flex items-center justify-between">
                                 <button
-                                    @click="currentStep = 1"
+                                    @click="currentStep = 2"
                                     class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                 >
                                     Back
@@ -198,7 +328,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 const currentStep = ref(1);
 const apiKey = ref('');
@@ -208,7 +338,34 @@ const apiKeyError = ref('');
 const isValidating = ref(false);
 const hasStarred = ref(false);
 
+// Permission-related state
+const permissionStatus = ref('checking'); // 'checking', 'granted', 'denied', 'error'
+const permissionMessage = ref('');
+const isRequestingPermission = ref(false);
+
 const showSteps = computed(() => currentStep.value > 0);
+
+// Load onboarding state on component mount
+onMounted(async () => {
+    try {
+        const response = await axios.get('/api/onboarding/status');
+        const status = response.data;
+
+        // Set current step based on onboarding progress
+        currentStep.value = status.current_step;
+
+        // If we're on step 2, check permission status
+        if (currentStep.value === 2) {
+            checkPermissionStatus();
+        }
+
+        console.log('Onboarding status loaded:', status);
+    } catch (error) {
+        console.error('Failed to load onboarding status:', error);
+        // Default to step 1 if there's an error
+        currentStep.value = 1;
+    }
+});
 
 const validateApiKey = () => {
     const key = apiKey.value.trim();
@@ -246,7 +403,20 @@ const saveApiKey = async () => {
         });
 
         if (response.data.success) {
+            // Mark step 1 as completed and advance to step 2
+            await axios.post('/api/onboarding/step', {
+                step: 1,
+                mark_completed: true,
+            });
+
+            await axios.post('/api/onboarding/step', {
+                step: 2,
+                mark_completed: false,
+            });
+
             currentStep.value = 2;
+            // Check permission status when moving to permission step
+            checkPermissionStatus();
         } else {
             apiKeyError.value = 'Failed to save API key. Please try again.';
         }
@@ -285,8 +455,91 @@ const openOpenAI = async () => {
     }
 };
 
-const completeOnboarding = () => {
-    // Navigate to realtime agent
-    router.visit('/realtime-agent');
+const checkPermissionStatus = async () => {
+    try {
+        permissionStatus.value = 'checking';
+        const response = await axios.get('/api/permissions/screen-recording/status');
+
+        if (response.data.status === 'granted') {
+            permissionStatus.value = 'granted';
+            permissionMessage.value = response.data.message;
+
+            // Mark step 2 as completed if permission is already granted
+            await axios.post('/api/onboarding/step', {
+                step: 2,
+                mark_completed: true,
+            });
+        } else if (response.data.status === 'denied') {
+            permissionStatus.value = 'denied';
+            permissionMessage.value = response.data.message;
+        } else if (response.data.status === 'error') {
+            permissionStatus.value = 'error';
+            permissionMessage.value = response.data.message;
+        } else {
+            permissionStatus.value = 'error';
+            permissionMessage.value = 'Unknown permission status';
+        }
+    } catch (error) {
+        console.error('Failed to check permission status:', error);
+        permissionStatus.value = 'error';
+        permissionMessage.value = 'Failed to check permission status';
+    }
+};
+
+const requestPermission = async () => {
+    try {
+        isRequestingPermission.value = true;
+        const response = await axios.post('/api/permissions/screen-recording/request');
+
+        if (response.data.success) {
+            // Wait a moment for the permission dialog to appear
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+
+            // Check permission status again
+            await checkPermissionStatus();
+
+            // If permission is granted, mark step 2 as completed
+            if (permissionStatus.value === 'granted') {
+                await axios.post('/api/onboarding/step', {
+                    step: 2,
+                    mark_completed: true,
+                });
+
+                await axios.post('/api/onboarding/step', {
+                    step: 3,
+                    mark_completed: false,
+                });
+            }
+        } else {
+            permissionStatus.value = 'error';
+            permissionMessage.value = response.data.error || 'Failed to request permission';
+        }
+    } catch (error) {
+        console.error('Failed to request permission:', error);
+        permissionStatus.value = 'error';
+        permissionMessage.value = 'Failed to request permission';
+    } finally {
+        isRequestingPermission.value = false;
+    }
+};
+
+const completeOnboarding = async () => {
+    try {
+        // Mark step 3 as completed and complete onboarding
+        await axios.post('/api/onboarding/step', {
+            step: 3,
+            mark_completed: true,
+        });
+
+        // Mark entire onboarding as complete
+        await axios.post('/api/onboarding/complete');
+
+        // Navigate to realtime agent
+        router.visit('/realtime-agent');
+    } catch (error) {
+        console.error('Failed to complete onboarding:', error);
+        // Still navigate even if there's an error
+        router.visit('/realtime-agent');
+    }
 };
 </script>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 
+    SECURITY HARDENED ENTITLEMENTS
+    Following principle of least privilege - only requesting minimal permissions
+    required for audio capture functionality.
+    -->
+    
+    <!-- Required for accessing audio input devices for meeting transcription -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    
+    <!-- Required for accessing microphone for real-time audio capture -->
+    <key>com.apple.security.device.microphone</key>
+    <true/>
+    
+    <!-- Required for ScreenCaptureKit to capture system audio -->
+    <key>com.apple.security.device.screen-capture</key>
+    <true/>
+    
+    <!--
+    SECURITY NOTE: Screen Recording Entitlement Explained
+    
+    The screen-capture entitlement is required because this app uses ScreenCaptureKit
+    to capture system audio for meeting transcription. ScreenCaptureKit requires
+    screen recording permissions even when only capturing audio, as it's part of
+    the unified screen capture API introduced in macOS 13.0.
+    
+    This is a legitimate use case for meeting transcription apps that need to
+    capture system audio (e.g., from video calls, presentations, etc.).
+    
+    REMOVED DANGEROUS ENTITLEMENTS (Security Assessment):
+    - com.apple.security.cs.allow-jit (JIT compilation not needed)
+    - com.apple.security.cs.allow-unsigned-executable-memory (major security risk)
+    - com.apple.security.cs.disable-executable-page-protection (memory corruption risk)
+    - com.apple.security.cs.disable-library-validation (library injection risk)
+    
+    These entitlements were removed to maintain macOS security protections
+    while preserving all required functionality for audio capture.
+    -->
+</dict>
+</plist>

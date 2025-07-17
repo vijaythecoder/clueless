@@ -88,6 +88,194 @@
                                 </div>
                             </div>
 
+                            <!-- Permissions Section -->
+                            <div v-if="activeSection === 'permissions'" class="space-y-6">
+                                <div>
+                                    <h2 class="mb-4 text-xl font-semibold">Permissions</h2>
+                                    <p class="mb-6 text-gray-600">Manage system permissions required for Clueless to function properly.</p>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <!-- Screen Recording Permission -->
+                                    <BaseCard>
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center space-x-3">
+                                                <div class="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/20">
+                                                    <svg
+                                                        class="h-5 w-5 text-blue-600 dark:text-blue-400"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h3 class="font-medium text-gray-900 dark:text-gray-100">Screen Recording</h3>
+                                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                                        Required for system audio capture during meetings
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center space-x-3">
+                                                <div
+                                                    v-if="permissionStatus === 'granted'"
+                                                    class="flex items-center space-x-2 text-green-600 dark:text-green-400"
+                                                >
+                                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    <span class="text-sm font-medium">Granted</span>
+                                                </div>
+                                                <div
+                                                    v-else-if="permissionStatus === 'denied'"
+                                                    class="flex items-center space-x-2 text-red-600 dark:text-red-400"
+                                                >
+                                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M6 18L18 6M6 6l12 12"
+                                                        />
+                                                    </svg>
+                                                    <span class="text-sm font-medium">Denied</span>
+                                                </div>
+                                                <div
+                                                    v-else-if="permissionStatus === 'checking'"
+                                                    class="flex items-center space-x-2 text-blue-600 dark:text-blue-400"
+                                                >
+                                                    <svg class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle
+                                                            class="opacity-25"
+                                                            cx="12"
+                                                            cy="12"
+                                                            r="10"
+                                                            stroke="currentColor"
+                                                            stroke-width="4"
+                                                        ></circle>
+                                                        <path
+                                                            class="opacity-75"
+                                                            fill="currentColor"
+                                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                        ></path>
+                                                    </svg>
+                                                    <span class="text-sm font-medium">Checking...</span>
+                                                </div>
+                                                <div v-else class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                        />
+                                                    </svg>
+                                                    <span class="text-sm font-medium">Unknown</span>
+                                                </div>
+                                                <div class="flex space-x-2">
+                                                    <Button
+                                                        @click="checkPermissionStatus"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        :disabled="permissionStatus === 'checking'"
+                                                    >
+                                                        <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path
+                                                                stroke-linecap="round"
+                                                                stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                                            />
+                                                        </svg>
+                                                        Check
+                                                    </Button>
+                                                    <Button
+                                                        v-if="permissionStatus === 'denied' || permissionStatus === 'error'"
+                                                        @click="requestPermission"
+                                                        size="sm"
+                                                        :disabled="isRequestingPermission"
+                                                    >
+                                                        <svg
+                                                            v-if="isRequestingPermission"
+                                                            class="mr-2 h-4 w-4 animate-spin"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <circle
+                                                                class="opacity-25"
+                                                                cx="12"
+                                                                cy="12"
+                                                                r="10"
+                                                                stroke="currentColor"
+                                                                stroke-width="4"
+                                                            ></circle>
+                                                            <path
+                                                                class="opacity-75"
+                                                                fill="currentColor"
+                                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                            ></path>
+                                                        </svg>
+                                                        <svg v-else class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path
+                                                                stroke-linecap="round"
+                                                                stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                                                            />
+                                                        </svg>
+                                                        {{ isRequestingPermission ? 'Requesting...' : 'Grant Permission' }}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div v-if="permissionMessage" class="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                                            {{ permissionMessage }}
+                                        </div>
+                                    </BaseCard>
+
+                                    <!-- Permission Help -->
+                                    <BaseCard>
+                                        <div class="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+                                            <div class="flex items-start space-x-3">
+                                                <svg
+                                                    class="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-400"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                    />
+                                                </svg>
+                                                <div>
+                                                    <h4 class="font-medium text-blue-900 dark:text-blue-100">
+                                                        Why is screen recording permission needed?
+                                                    </h4>
+                                                    <p class="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                                                        Clueless uses macOS ScreenCaptureKit to capture system audio during meetings. This requires
+                                                        screen recording permission, but the app only captures audio data - no visual content is
+                                                        recorded or stored.
+                                                    </p>
+                                                    <p class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                                                        <strong>To manually grant permission:</strong> Go to System Preferences → Privacy & Security →
+                                                        Screen Recording, then enable Clueless.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </BaseCard>
+                                </div>
+                            </div>
+
                             <!-- Templates Section -->
                             <div v-if="activeSection === 'templates'" class="space-y-6">
                                 <div class="mb-6 flex items-center justify-between">
@@ -208,7 +396,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { BookOpen, Home, Key, MessageCircle, MessageSquare, Variable } from 'lucide-vue-next';
+import { BookOpen, Home, Key, MessageCircle, MessageSquare, Shield, Variable } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
 interface Template {
@@ -244,6 +432,7 @@ const navItems = [
     { id: 'templates', label: 'Templates', icon: MessageSquare },
     { id: 'variables', label: 'Variables', icon: Variable },
     { id: 'api', label: 'API Configuration', icon: Key },
+    { id: 'permissions', label: 'Permissions', icon: Shield },
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
 ];
 
@@ -254,6 +443,11 @@ const activeSection = ref(urlParams.get('section') || 'templates');
 // API Key Management
 const apiKey = ref('');
 const showApiKey = ref(false);
+
+// Permission Management
+const permissionStatus = ref('checking'); // 'checking', 'granted', 'denied', 'error'
+const permissionMessage = ref('');
+const isRequestingPermission = ref(false);
 
 // Template Management
 const templates = ref<Template[]>([]);
@@ -273,6 +467,55 @@ const saveApiKey = () => {
     alert('API Key saved successfully!');
 };
 
+const checkPermissionStatus = async () => {
+    try {
+        permissionStatus.value = 'checking';
+        const response = await axios.get('/api/permissions/screen-recording/status');
+
+        if (response.data.status === 'granted') {
+            permissionStatus.value = 'granted';
+            permissionMessage.value = response.data.message;
+        } else if (response.data.status === 'denied') {
+            permissionStatus.value = 'denied';
+            permissionMessage.value = response.data.message;
+        } else if (response.data.status === 'error') {
+            permissionStatus.value = 'error';
+            permissionMessage.value = response.data.message;
+        } else {
+            permissionStatus.value = 'error';
+            permissionMessage.value = 'Unknown permission status';
+        }
+    } catch (error) {
+        console.error('Failed to check permission status:', error);
+        permissionStatus.value = 'error';
+        permissionMessage.value = 'Failed to check permission status';
+    }
+};
+
+const requestPermission = async () => {
+    try {
+        isRequestingPermission.value = true;
+        const response = await axios.post('/api/permissions/screen-recording/request');
+
+        if (response.data.success) {
+            // Wait a moment for the permission dialog to appear
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+
+            // Check permission status again
+            await checkPermissionStatus();
+        } else {
+            permissionStatus.value = 'error';
+            permissionMessage.value = response.data.error || 'Failed to request permission';
+        }
+    } catch (error) {
+        console.error('Failed to request permission:', error);
+        permissionStatus.value = 'error';
+        permissionMessage.value = 'Failed to request permission';
+    } finally {
+        isRequestingPermission.value = false;
+    }
+};
+
 const handleNavClick = (item: any) => {
     if (item.link) {
         router.visit(item.link);
@@ -282,6 +525,11 @@ const handleNavClick = (item: any) => {
         url.searchParams.set('section', item.id);
         window.history.pushState({}, '', url.toString());
         activeSection.value = item.id;
+
+        // Check permission status if navigating to permissions section
+        if (item.id === 'permissions') {
+            checkPermissionStatus();
+        }
     }
 };
 
@@ -332,6 +580,11 @@ onMounted(() => {
     const savedKey = localStorage.getItem('OPENAI_API_KEY');
     if (savedKey) {
         apiKey.value = savedKey;
+    }
+
+    // Check permission status if on permissions section
+    if (activeSection.value === 'permissions') {
+        checkPermissionStatus();
     }
 });
 </script>

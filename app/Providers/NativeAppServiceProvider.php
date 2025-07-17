@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
 use Native\Laravel\Contracts\ProvidesPhpIni;
 use Native\Laravel\Facades\Window;
+use Native\Laravel\Facades\Screen;
 
 class NativeAppServiceProvider implements ProvidesPhpIni
 {
@@ -17,18 +18,21 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function boot(): void
     {
+        // Get responsive window dimensions (75% of screen size)
+        $dimensions = $this->getResponsiveWindowDimensions();
+
         // Create an overlay window for sales assistant
         Window::open()
             ->route('realtime-agent')
-            ->width(1200)
-            ->height(700)
-            ->minWidth(400)
-            ->minHeight(500)
+            ->width($dimensions['width'])
+            ->height($dimensions['height'])
+            ->minWidth($dimensions['minWidth'])
+            ->minHeight($dimensions['minHeight'])
             ->titleBarStyle('hidden')
             ->transparent()
             ->backgroundColor('#00000000')
             ->resizable()
-            ->position(50, 50)
+            ->position(100)
             ->webPreferences([
                 'nodeIntegration' => true,
                 'contextIsolation' => false,
@@ -36,6 +40,7 @@ class NativeAppServiceProvider implements ProvidesPhpIni
                 'backgroundThrottling' => false,
                 'sandbox' => false,
             ])
+            ->rememberState()
             // Set window to floating panel level for better screen protection
             ->alwaysOnTop(false);
 
@@ -75,6 +80,73 @@ class NativeAppServiceProvider implements ProvidesPhpIni
         } catch (\Exception $e) {
             // Silently catch any errors to not break app startup
             // The app will still work without seed data
+        }
+    }
+
+    /**
+     * Get responsive window dimensions based on screen size.
+     * Returns 75% of screen dimensions with sensible minimums.
+     */
+    protected function getResponsiveWindowDimensions(): array
+    {
+        try {
+            // Get primary display dimensions
+            $displays = null;
+            try {
+                $displays = Screen::displays();
+            } catch (\Throwable $e) {
+                // Screen facade not available in non-native environment
+                throw new \Exception('Screen information not available');
+            }
+
+            // Handle case where displays() returns null (non-native environment)
+            if ($displays === null || empty($displays)) {
+                throw new \Exception('Screen information not available');
+            }
+
+            $primaryDisplay = $displays[0] ?? null;
+
+            if (!$primaryDisplay) {
+                // Fallback to reasonable defaults if screen info unavailable
+                return [
+                    'width' => 1280,
+                    'height' => 720,
+                    'minWidth' => 400,
+                    'minHeight' => 500,
+                ];
+            }
+
+            // Get screen dimensions from workArea (excludes taskbars/docks)
+            $screenWidth = $primaryDisplay['workArea']['width'];
+            $screenHeight = $primaryDisplay['workArea']['height'];
+
+            // Calculate 75% of screen dimensions
+            $width = (int) ($screenWidth * 0.75);
+            $height = (int) ($screenHeight * 0.75);
+
+            // Use fixed minimum dimensions (original values)
+            $minWidth = 400;
+            $minHeight = 500;
+
+            // Ensure we don't exceed reasonable maximums (90% of screen)
+            $maxWidth = (int) ($screenWidth * 0.9);
+            $maxHeight = (int) ($screenHeight * 0.9);
+
+            return [
+                'width' => min($width, $maxWidth),
+                'height' => min($height, $maxHeight),
+                'minWidth' => $minWidth,
+                'minHeight' => $minHeight,
+            ];
+
+        } catch (\Exception $e) {
+            // Fallback to reasonable defaults if anything fails
+            return [
+                'width' => 1280,
+                'height' => 720,
+                'minWidth' => 400,
+                'minHeight' => 500,
+            ];
         }
     }
 }

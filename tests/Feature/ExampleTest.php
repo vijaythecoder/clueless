@@ -1,12 +1,12 @@
 <?php
 
-use App\Services\ApiKeyService;
+use Tests\Traits\MocksOnboarding;
+
+uses(MocksOnboarding::class);
 
 it('returns a successful response', function () {
-    // Mock API key service to return true (API key exists)
-    $mockApiKeyService = Mockery::mock(ApiKeyService::class);
-    $mockApiKeyService->shouldReceive('hasApiKey')->andReturn(true);
-    $this->app->instance(ApiKeyService::class, $mockApiKeyService);
+    // Mock complete onboarding flow (API key + permissions + completion)
+    $this->mockCompletedOnboarding();
     
     $response = $this->get('/');
 
