@@ -19,7 +19,7 @@ class NativeAppServiceProvider implements ProvidesPhpIni
     {
         // Create an overlay window for sales assistant
         Window::open()
-            ->route('realtime-agent')
+            ->route('realtime-agent-v2')
             ->width(1200)
             ->height(700)
             ->minWidth(400)

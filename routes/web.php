@@ -29,6 +29,15 @@ Route::get('/realtime-agent', function () {
     return Inertia::render('RealtimeAgent/Main');
 })->name('realtime-agent');
 
+// Realtime Agent V2 - OpenAI Agents SDK Implementation
+Route::get('/realtime-agent-v2', function () {
+    return Inertia::render('RealtimeAgent/MainV2');
+})->name('realtime-agent-v2');
+
+// Audio Test Route - Testing electron-audio-loopback
+Route::get('/audio-test', [\App\Http\Controllers\AudioTestController::class, 'index'])
+    ->name('audio-test');
+
 
 // Realtime API Routes
 Route::post('/api/realtime/ephemeral-key', [\App\Http\Controllers\RealtimeController::class, 'generateEphemeralKey'])

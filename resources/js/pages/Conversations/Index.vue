@@ -82,7 +82,7 @@ const navigateToConversation = (sessionId: number) => {
 };
 
 const startNewCall = () => {
-    router.visit('/realtime-agent');
+    router.visit('/realtime-agent-v2');
 };
 
 const goToPage = (page: number) => {

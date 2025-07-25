@@ -1,11 +1,13 @@
 @import 'tailwindcss';
 
+/* Tell Tailwind CSS v4 where to look for utility classes */
+@source "../js/**/*.{js,ts,vue}";
+
 @import 'tw-animate-css';
 
 /* Realtime agent styles removed - using unified design system */
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+/* Tailwind v4 with Vite automatically detects source files */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -58,6 +60,14 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Transcript card colors */
+    --color-blue-50: var(--blue-50);
+    --color-blue-900: var(--blue-900);
+    --color-gray-50: var(--gray-50);
+    --color-gray-800: var(--gray-800);
+    --color-yellow-50: var(--yellow-50);
+    --color-yellow-900: var(--yellow-900);
 }
 
 /*
@@ -121,6 +131,14 @@
     --sidebar-border: hsl(0 0% 91%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
     --sidebar: hsl(0 0% 98%);
+    
+    /* Transcript card colors */
+    --blue-50: hsl(214 100% 97%);
+    --blue-900: hsl(215 80% 20%);
+    --gray-50: hsl(210 20% 98%);
+    --gray-800: hsl(209 20% 25%);
+    --yellow-50: hsl(50 100% 96%);
+    --yellow-900: hsl(45 80% 20%);
 }
 
 .dark {
@@ -157,6 +175,14 @@
     --sidebar-border: hsl(0 0% 15.9%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
     --sidebar: hsl(240 5.9% 10%);
+    
+    /* Transcript card colors - dark mode */
+    --blue-50: hsl(214 100% 97%);
+    --blue-900: hsl(215 80% 20%);
+    --gray-50: hsl(210 20% 98%);
+    --gray-800: hsl(209 20% 25%);
+    --yellow-50: hsl(50 100% 96%);
+    --yellow-900: hsl(45 80% 20%);
 }
 
 @layer base {
@@ -178,23 +204,13 @@
     position: relative;
 }
 
-/* Enhanced screen recording protection */
-.screen-protection-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+/* Enhanced screen recording protection - content overlay */
+.screen-protection-content-overlay {
+    position: absolute;
+    inset: 0;
     pointer-events: none;
-    z-index: 999999;
-    background: transparent;
-    /* This creates a compositing layer that can interfere with screen recording */
-    will-change: transform;
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    /* Force GPU acceleration */
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
+    z-index: 10;
+    border-radius: 0.5rem;
 }
 
 /* Alternative protection using filters */
@@ -517,6 +533,111 @@ body {
     overflow-x: hidden;
 }
 
+
+/* Custom scrollbar styles for glass-morphism */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.3);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.5);
+}
+
+/* Dark mode custom scrollbar */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.5);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.7);
+}
+
+/* Minimal transcript scrollbar */
+.transcript-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.transcript-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.transcript-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.transcript-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 2px;
+}
+
+.transcript-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.7);
+}
+
+/* Dark mode transcript scrollbar */
+.dark .transcript-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(107, 114, 128, 0.5);
+}
+
+.dark .transcript-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.7);
+}
+
+/* Enhanced text clarity for glass-morphism */
+.glass-card {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.glass-card h3 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.glass-card p {
+    font-weight: 400;
+}
+
+/* Ensure text remains readable on glass backgrounds */
+.glass-card .text-gray-900 {
+    color: rgb(17, 24, 39);
+    font-weight: 500;
+}
+
+.glass-card .text-gray-600 {
+    color: rgb(75, 85, 99);
+}
+
+.dark .glass-card .text-gray-100 {
+    color: rgb(243, 244, 246);
+    font-weight: 500;
+}
+
+.dark .glass-card .text-gray-400 {
+    color: rgb(209, 213, 219);
+}
+
 /* Responsive styles for narrow widths */
 @media (max-width: 768px) {
     /* Mobile menu dropdown styles */
@@ -608,12 +729,12 @@ body {
 
 /* Dot pattern background for main container */
 .bg-dot-pattern {
-    background-image: radial-gradient(circle, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    background-image: radial-gradient(circle, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
     background-size: 20px 20px;
 }
 
 .dark .bg-dot-pattern {
-    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
 /* Fade in animation */
@@ -664,6 +785,77 @@ body {
 
 .dark .bg-red-500 {
     background-color: rgb(252, 165, 165); /* red-300 */
+}
+
+/* Transcript card background colors - Ensure these work with Tailwind v4 */
+.bg-blue-50 {
+    background-color: rgb(239, 246, 255) !important;
+}
+
+.bg-gray-50 {
+    background-color: rgb(249, 250, 251) !important;
+}
+
+.bg-gray-100 {
+    background-color: rgb(243, 244, 246) !important;
+}
+
+.bg-yellow-50 {
+    background-color: rgb(254, 252, 232) !important;
+}
+
+.bg-green-50 {
+    background-color: rgb(240, 253, 244) !important;
+}
+
+/* Ensure transcript cards are never transparent */
+.animate-fadeIn .bg-blue-50 {
+    background-color: rgb(239, 246, 255) !important;
+}
+
+.animate-fadeIn.bg-gray-50 {
+    background-color: rgb(249, 250, 251) !important;
+}
+
+.animate-fadeIn.bg-yellow-50 {
+    background-color: rgb(254, 252, 232) !important;
+}
+
+.dark .bg-blue-50 {
+    background-color: rgba(30, 58, 138, 0.2) !important; /* blue-900 with 20% opacity */
+}
+
+.dark .bg-gray-50 {
+    background-color: rgb(31, 41, 55) !important; /* gray-800 */
+}
+
+.dark .bg-gray-100 {
+    background-color: rgb(55, 65, 81) !important; /* gray-700 */
+}
+
+.dark .bg-yellow-50 {
+    background-color: rgba(120, 53, 15, 0.2) !important; /* yellow-900 with 20% opacity */
+}
+
+/* Border colors for transcript cards */
+.border-blue-100 {
+    border-color: rgb(219, 234, 254) !important;
+}
+
+.border-yellow-200 {
+    border-color: rgb(254, 240, 138) !important;
+}
+
+.dark .border-blue-900\/30 {
+    border-color: rgba(30, 58, 138, 0.3) !important;
+}
+
+.dark .border-yellow-900\/30 {
+    border-color: rgba(120, 53, 15, 0.3) !important;
+}
+
+.dark .bg-green-50 {
+    background-color: rgba(20, 83, 45, 0.2) !important; /* green-900 with 20% opacity */
 }
 
 /* Fix template dropdown hover colors in dark mode */

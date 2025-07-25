@@ -24,3 +24,6 @@ yarn-error.log
 /.zed
 /dist
 .DS_Store
+
+# NativePHP local development
+nativephp-electron/

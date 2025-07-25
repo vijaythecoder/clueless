@@ -16,12 +16,21 @@
         "realtime-transcription"
     ],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "nativephp-electron",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "require": {
         "php": "^8.2",
         "inertiajs/inertia-laravel": "^2.0",
-        "laravel/framework": "^12.0",
+        "laravel/framework": "12.20.0",
         "laravel/tinker": "^2.10.1",
-        "nativephp/electron": "^1.1",
+        "nativephp/electron": "dev-main",
         "openai-php/laravel": "^0.14.0",
         "pusher/pusher-php-server": "^7.2",
         "tightenco/ziggy": "^2.4"

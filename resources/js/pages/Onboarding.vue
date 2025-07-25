@@ -287,6 +287,6 @@ const openOpenAI = async () => {
 
 const completeOnboarding = () => {
     // Navigate to realtime agent
-    router.visit('/realtime-agent');
+    router.visit('/realtime-agent-v2');
 };
 </script>
