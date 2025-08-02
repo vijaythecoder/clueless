@@ -14,7 +14,7 @@ class OpenExternalTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Reset Shell facade mock for each test
         Shell::clearResolvedInstance('Shell');
     }
@@ -32,13 +32,13 @@ class OpenExternalTest extends TestCase
             ->with('https://github.com/vijaythecoder/clueless');
 
         $response = $this->postJson('/api/open-external', [
-            'url' => 'https://github.com/vijaythecoder/clueless'
+            'url' => 'https://github.com/vijaythecoder/clueless',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true
-                 ]);
+            ->assertJson([
+                'success' => true,
+            ]);
     }
 
     public function test_opens_openai_url_successfully(): void
@@ -48,25 +48,25 @@ class OpenExternalTest extends TestCase
             ->with('https://platform.openai.com/api-keys');
 
         $response = $this->postJson('/api/open-external', [
-            'url' => 'https://platform.openai.com/api-keys'
+            'url' => 'https://platform.openai.com/api-keys',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true
-                 ]);
+            ->assertJson([
+                'success' => true,
+            ]);
     }
 
     public function test_rejects_invalid_url(): void
     {
         $response = $this->postJson('/api/open-external', [
-            'url' => 'not-a-valid-url'
+            'url' => 'not-a-valid-url',
         ]);
 
         $response->assertStatus(400)
-                 ->assertJson([
-                     'error' => 'Invalid URL'
-                 ]);
+            ->assertJson([
+                'error' => 'Invalid URL',
+            ]);
     }
 
     public function test_rejects_malicious_urls(): void
@@ -74,18 +74,18 @@ class OpenExternalTest extends TestCase
         $maliciousUrls = [
             'javascript:alert("xss")',
             'data:text/html,<script>alert("xss")</script>',
-            'not-a-url'
+            'not-a-url',
         ];
 
         foreach ($maliciousUrls as $url) {
             $response = $this->postJson('/api/open-external', [
-                'url' => $url
+                'url' => $url,
             ]);
 
             $response->assertStatus(400)
-                     ->assertJson([
-                         'error' => 'Invalid URL'
-                     ]);
+                ->assertJson([
+                    'error' => 'Invalid URL',
+                ]);
         }
     }
 
@@ -99,25 +99,25 @@ class OpenExternalTest extends TestCase
     public function test_handles_empty_url(): void
     {
         $response = $this->postJson('/api/open-external', [
-            'url' => ''
+            'url' => '',
         ]);
 
         $response->assertStatus(400)
-                 ->assertJson([
-                     'error' => 'Invalid URL'
-                 ]);
+            ->assertJson([
+                'error' => 'Invalid URL',
+            ]);
     }
 
     public function test_handles_null_url(): void
     {
         $response = $this->postJson('/api/open-external', [
-            'url' => null
+            'url' => null,
         ]);
 
         $response->assertStatus(400)
-                 ->assertJson([
-                     'error' => 'Invalid URL'
-                 ]);
+            ->assertJson([
+                'error' => 'Invalid URL',
+            ]);
     }
 
     public function test_allows_https_urls(): void
@@ -126,7 +126,7 @@ class OpenExternalTest extends TestCase
             'https://github.com',
             'https://platform.openai.com',
             'https://www.example.com',
-            'https://subdomain.example.com/path?query=value'
+            'https://subdomain.example.com/path?query=value',
         ];
 
         foreach ($validUrls as $url) {
@@ -135,13 +135,13 @@ class OpenExternalTest extends TestCase
                 ->with($url);
 
             $response = $this->postJson('/api/open-external', [
-                'url' => $url
+                'url' => $url,
             ]);
 
             $response->assertStatus(200)
-                     ->assertJson([
-                         'success' => true
-                     ]);
+                ->assertJson([
+                    'success' => true,
+                ]);
         }
     }
 
@@ -152,13 +152,13 @@ class OpenExternalTest extends TestCase
             ->with('http://example.com');
 
         $response = $this->postJson('/api/open-external', [
-            'url' => 'http://example.com'
+            'url' => 'http://example.com',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true
-                 ]);
+            ->assertJson([
+                'success' => true,
+            ]);
     }
 
     public function test_handles_shell_exception(): void
@@ -169,7 +169,7 @@ class OpenExternalTest extends TestCase
             ->andThrow(new \Exception('Shell error'));
 
         $response = $this->postJson('/api/open-external', [
-            'url' => 'https://github.com'
+            'url' => 'https://github.com',
         ]);
 
         // The route doesn't handle exceptions explicitly, so it would return 500

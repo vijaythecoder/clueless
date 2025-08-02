@@ -49,7 +49,7 @@ expect()->extend('toBeOne', function () {
  */
 function mockApiKey(): string
 {
-    return 'sk-test-' . str_repeat('x', 40);
+    return 'sk-test-'.str_repeat('x', 40);
 }
 
 /**
@@ -58,11 +58,11 @@ function mockApiKey(): string
 function mockEphemeralKeyResponse(): array
 {
     return [
-        'id' => 'sess_' . uniqid(),
+        'id' => 'sess_'.uniqid(),
         'object' => 'realtime.session',
         'model' => 'gpt-4o-mini-realtime-preview-2024-12-17',
         'client_secret' => [
-            'value' => 'ek_' . bin2hex(random_bytes(32)),
+            'value' => 'ek_'.bin2hex(random_bytes(32)),
             'expires_at' => time() + 7200, // 2 hours from now
         ],
         'tools' => [],

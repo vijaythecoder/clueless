@@ -25,8 +25,8 @@ class ApiKeyController extends Controller
     public function edit(Request $request): Response
     {
         $hasApiKey = $this->apiKeyService->hasApiKey();
-        $isUsingEnvKey = !cache()->has('app_openai_api_key') && $hasApiKey;
-        
+        $isUsingEnvKey = ! cache()->has('app_openai_api_key') && $hasApiKey;
+
         return Inertia::render('settings/ApiKeys', [
             'hasApiKey' => $hasApiKey,
             'isUsingEnvKey' => $isUsingEnvKey,
@@ -45,7 +45,7 @@ class ApiKeyController extends Controller
         $apiKey = $request->input('openai_api_key');
 
         // Validate the API key
-        if (!$this->apiKeyService->validateApiKey($apiKey)) {
+        if (! $this->apiKeyService->validateApiKey($apiKey)) {
             throw ValidationException::withMessages([
                 'openai_api_key' => ['The provided API key is invalid. Please check and try again.'],
             ]);
@@ -79,7 +79,7 @@ class ApiKeyController extends Controller
         $apiKey = $request->input('api_key');
 
         // Validate the API key
-        if (!$this->apiKeyService->validateApiKey($apiKey)) {
+        if (! $this->apiKeyService->validateApiKey($apiKey)) {
             return response()->json([
                 'success' => false,
                 'message' => 'The provided API key is invalid. Please check and try again.',

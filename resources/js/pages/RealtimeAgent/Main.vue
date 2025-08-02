@@ -188,7 +188,7 @@
                     class="text-xs font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                     :class="{ 'cursor-not-allowed opacity-50': isActive }"
                 >
-                    Call History
+                    Dashboard
                 </button>
                 <button
                     @click="toggleSession"
@@ -326,7 +326,7 @@
                     <span class="font-medium">{{ isOverlayMode ? 'ON' : 'OFF' }}</span>
                 </button>
 
-                <!-- Call History Link -->
+                <!-- Dashboard Link -->
                 <button
                     @click="
                         handleDashboardClick();
@@ -336,7 +336,7 @@
                     class="w-full border-t border-gray-100 pt-3 text-left text-xs text-gray-600 dark:border-gray-800 dark:text-gray-400"
                     :class="{ 'cursor-not-allowed opacity-50': isActive }"
                 >
-                    View Call History →
+                    Go to Dashboard →
                 </button>
             </div>
         </div>
@@ -636,49 +636,6 @@
             </div>
         </div>
 
-        <!-- Customer Info Modal -->
-        <div v-if="showCustomerModal" class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
-            <div class="mx-4 w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                <h2 class="mb-4 text-lg font-semibold">Customer Information (Optional)</h2>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-600 dark:text-gray-400">Customer Name</label>
-                        <input
-                            v-model="customerInfo.name"
-                            type="text"
-                            class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-700"
-                            placeholder="John Smith"
-                        />
-                    </div>
-
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-600 dark:text-gray-400">Company</label>
-                        <input
-                            v-model="customerInfo.company"
-                            type="text"
-                            class="w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-700"
-                            placeholder="Acme Corp"
-                        />
-                    </div>
-                </div>
-
-                <div class="mt-6 flex gap-3">
-                    <button
-                        @click="startWithCustomerInfo"
-                        class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-                    >
-                        Start Call
-                    </button>
-                    <button
-                        @click="skipCustomerInfo"
-                        class="flex-1 rounded-lg bg-gray-100 px-4 py-2 text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                    >
-                        Skip
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 </template>
 
@@ -692,6 +649,7 @@ import { useVariables } from '@/composables/useVariables';
 import { audioHealthMonitor, type AudioHealthStatus } from '@/services/audioHealthCheck';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { useSettingsStore } from '@/stores/settings';
 // import type { TemplateResolution } from '@/types/variable'
 import ContextualInformation from '@/components/ContextualInformation.vue';
 
@@ -880,12 +838,6 @@ const transcriptQueue: Array<{ speaker: string; text: string; timestamp: number;
 const insightQueue: Array<{ type: string; data: any; timestamp: number }> = [];
 let saveInterval: NodeJS.Timeout | null = null;
 
-// Customer info modal
-const showCustomerModal = ref(false);
-const customerInfo = ref({
-    name: '',
-    company: '',
-});
 
 // Coach dropdown
 const showCoachDropdown = ref(false);
@@ -1007,11 +959,6 @@ const scrollTranscriptToTop = () => {
     nextTick(() => {
         if (transcriptContainer.value) {
             // For flex-col-reverse, scrolling to max height shows the newest messages
-            console.log('🔄 Auto-scrolling transcript:', {
-                scrollHeight: transcriptContainer.value.scrollHeight,
-                clientHeight: transcriptContainer.value.clientHeight,
-                currentScrollTop: transcriptContainer.value.scrollTop,
-            });
             transcriptContainer.value.scrollTop = transcriptContainer.value.scrollHeight;
         }
     });
@@ -1083,25 +1030,13 @@ const toggleSession = async () => {
     if (isActive.value) {
         await stopSession();
     } else {
-        // Show customer modal for new sessions
-        showCustomerModal.value = true;
+        await startSession();
     }
 };
 
-const startWithCustomerInfo = async () => {
-    showCustomerModal.value = false;
-    await startSession();
-};
-
-const skipCustomerInfo = async () => {
-    customerInfo.value = { name: '', company: '' };
-    showCustomerModal.value = false;
-    await startSession();
-};
 
 const startSession = async () => {
     try {
-        console.log('🚀 Starting Dual-Agent Realtime session...');
         connectionStatus.value = 'connecting';
         callStartTime.value = new Date();
         callDurationSeconds.value = 0;
@@ -1141,16 +1076,13 @@ const startSession = async () => {
         const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview-2024-12-17`;
 
         // 1. Salesperson Transcriber - Simple transcription only
-        console.log('🎤 Connecting Salesperson Transcriber...');
         wsSalesperson = new WebSocket(wsUrl, ['realtime', `openai-insecure-api-key.${ephemeralKey}`, 'openai-beta.realtime-v1']);
 
         // 2. Customer Coach Agent - System audio + Real-time coaching
-        console.log('🧠 Connecting Customer Coach Agent...');
         wsCustomerCoach = new WebSocket(wsUrl, ['realtime', `openai-insecure-api-key.${ephemeralKey}`, 'openai-beta.realtime-v1']);
 
         // Set up Salesperson Agent (Microphone only)
         wsSalesperson.onopen = () => {
-            console.log('✅ Salesperson Agent connected');
 
             // Add small delay to ensure WebSocket is ready
             setTimeout(() => {
@@ -1183,7 +1115,6 @@ const startSession = async () => {
 
         // Set up Customer Coach Agent (System audio + AI coaching)
         wsCustomerCoach.onopen = () => {
-            console.log('✅ Customer Coach Agent connected');
             connectionStatus.value = 'connected';
 
             // Get coach instructions from template
@@ -1370,7 +1301,6 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
         };
 
         wsSalesperson.onclose = () => {
-            console.log('🔌 Salesperson agent disconnected');
             if (isActive.value) {
                 addToTranscript('system', '⚠️ Salesperson connection lost. Please restart the session.', 'error');
             }
@@ -1382,7 +1312,6 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
         };
 
         wsCustomerCoach.onclose = () => {
-            console.log('🔌 Customer Coach agent disconnected');
             if (isActive.value) {
                 addToTranscript('system', '⚠️ Customer Coach connection lost. Please restart the session.', 'error');
                 connectionStatus.value = 'disconnected';
@@ -1392,16 +1321,13 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
         // Salesperson transcriber message handler
         wsSalesperson.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            console.log('🎤 Salesperson transcriber:', data.type);
 
             switch (data.type) {
                 case 'session.created':
-                    console.log('✅ Salesperson transcriber ready');
                     break;
 
                 case 'conversation.item.input_audio_transcription.completed':
                     if (data.transcript) {
-                        console.log('👔 Salesperson said:', data.transcript);
 
                         // Track speaker transitions
                         const now = Date.now();
@@ -1447,32 +1373,24 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
 
             // Enhanced logging for debugging
             if (data.type.includes('function')) {
-                console.log('🎯 Function call:', data.type, data);
             } else if (data.type.includes('transcription')) {
-                console.log('📣 Customer transcription:', data.type);
             } else if (data.type === 'response.function_call_arguments.delta') {
-                console.log('📝 Streaming delta:', data.name, 'chars:', data.arguments?.length);
             } else {
-                console.log('🤖 Customer Coach:', data.type);
             }
 
             switch (data.type) {
                 case 'session.created':
-                    console.log('✅ Customer Coach agent ready');
                     isActive.value = true;
                     break;
 
                 case 'response.created':
-                    console.log('🎬 Response created', data.response);
                     activeResponseId = data.response?.id || null;
-                    console.log('📝 Stored response ID:', activeResponseId);
                     // Reset analyzing flag when response is created
                     isAnalyzing = false;
                     break;
 
                 case 'conversation.item.input_audio_transcription.completed':
                     if (data.transcript) {
-                        console.log('📞 Customer said:', data.transcript);
 
                         // Update UI immediately
                         addToTranscript('customer', data.transcript);
@@ -1512,7 +1430,6 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
 
                         if (shouldAnalyzeImmediately) {
                             // Analyze immediately for important content
-                            console.log('⚡ Immediate analysis triggered');
                             analyzeCustomerSpeech();
                         } else {
                             // Otherwise debounce
@@ -1524,7 +1441,6 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
                     break;
 
                 case 'response.function_call_arguments.done':
-                    console.log('✅ Function call complete:', data);
 
                     // Get accumulated arguments if available
                     const accumulatedArgs = functionCallAccumulator.get(data.call_id || '') || data.arguments;
@@ -1550,7 +1466,6 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
                     if (data.call_id && data.arguments) {
                         const existing = functionCallAccumulator.get(data.call_id) || '';
                         functionCallAccumulator.set(data.call_id, existing + data.arguments);
-                        console.log('📡 Accumulating:', data.name, 'total length:', existing.length + data.arguments.length);
                     }
                     break;
 
@@ -1561,18 +1476,15 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
 
                     // Check if it's the "already has active response" error
                     if (data.error?.message?.includes('already has active response')) {
-                        console.log('⚠️ Ignoring duplicate response error');
                     }
                     break;
 
                 case 'response.done':
-                    console.log('✅ Coach response complete');
                     activeResponseId = null;
                     isAnalyzing = false;
                     break;
 
                 case 'response.cancelled':
-                    console.log('🚫 Response cancelled');
                     activeResponseId = null;
                     isAnalyzing = false;
                     break;
@@ -1585,23 +1497,18 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
       const data = JSON.parse(event.data)
       
       if (data.type.includes('function')) {
-        console.log('🏆 Coach function:', data.type, data)
       } else {
-        console.log('🏆 Coach agent:', data.type)
       }
       
       switch (data.type) {
         case 'session.created':
-          console.log('✅ Coach agent ready')
           isActive.value = true
           break
           
         case 'session.updated':
-          console.log('🔄 Coach session updated')
           break
           
         case 'response.function_call_arguments.done':
-          console.log('✅ Coach function call complete:', data)
           if (data.name && data.arguments) {
             try {
               const args = JSON.parse(data.arguments)
@@ -1689,7 +1596,6 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
           break
           
         case 'response.done':
-          console.log('✅ Coach response complete')
           // Reset flag when response is done
           coachResponsePending = false
           break
@@ -1709,11 +1615,9 @@ Be thorough but not intrusive. Extract actionable intelligence to help guide the
 
         // Close handlers
         wsSalesperson.onclose = () => {
-            console.log('🔌 Salesperson agent disconnected');
         };
 
         wsCustomerCoach.onclose = () => {
-            console.log('🔌 Customer Coach agent disconnected');
             connectionStatus.value = 'disconnected';
             isActive.value = false;
         };
@@ -1742,7 +1646,6 @@ const analyzeCustomerSpeech = async () => {
 
     // Cancel any active response first - but only if we have a valid ID
     if (activeResponseId && activeResponseId !== 'pending') {
-        console.log('🚫 Cancelling previous response:', activeResponseId);
         try {
             wsCustomerCoach.send(
                 JSON.stringify({
@@ -1760,7 +1663,6 @@ const analyzeCustomerSpeech = async () => {
     const combinedSpeech = customerSpeechBuffer.join(' ');
     customerSpeechBuffer = []; // Clear buffer
 
-    console.log('🧠 Analyzing customer speech:', combinedSpeech);
 
     // Create focused instruction for better results
     const instruction = `Analyze this customer statement: "${combinedSpeech}"
@@ -1776,7 +1678,6 @@ IMPORTANT: Use the provided function tools to capture insights:
 Be thorough - capture ALL topics discussed, not just the main one. Each distinct topic should be tracked separately.`;
 
     // Create new response - ID will be assigned by the server
-    console.log('📤 Creating new response for analysis');
 
     wsCustomerCoach.send(
         JSON.stringify({
@@ -1790,11 +1691,9 @@ Be thorough - capture ALL topics discussed, not just the main one. Each distinct
 };
 
 const handleFunctionCall = (name: string, args: any) => {
-    console.log('🔧 Handling function call:', name, args);
 
     switch (name) {
         case 'track_discussion_topic':
-            console.log('📝 Tracking topic:', args.name, 'Sentiment:', args.sentiment);
 
             // Normalize topic name for comparison
             const normalizedName = args.name.trim().toLowerCase();
@@ -1809,7 +1708,6 @@ const handleFunctionCall = (name: string, args: any) => {
                 if (args.sentiment && args.sentiment !== existingTopic.sentiment) {
                     existingTopic.sentiment = 'mixed';
                 }
-                console.log('📈 Updated topic:', existingTopic.name, 'mentions:', existingTopic.mentions);
             } else {
                 // Add new topic
                 const newTopic = {
@@ -1821,7 +1719,6 @@ const handleFunctionCall = (name: string, args: any) => {
                     sentiment: args.sentiment || 'neutral',
                 };
                 topics.value.push(newTopic);
-                console.log('🆕 New topic added:', newTopic.name);
 
                 // Queue insight for saving
                 insightQueue.push({
@@ -1833,8 +1730,6 @@ const handleFunctionCall = (name: string, args: any) => {
 
             // Sort topics by mentions
             topics.value.sort((a, b) => b.mentions - a.mentions);
-            console.log('📊 Total topics:', topics.value.length);
-            console.log('📈 All topics:', topics.value.map((t) => `${t.name} (${t.mentions}x)`).join(', '));
 
             // Also add to transcript for visibility
             if (!existingTopic) {
@@ -1843,7 +1738,6 @@ const handleFunctionCall = (name: string, args: any) => {
             break;
 
         case 'detect_commitment':
-            console.log('🤝 Commitment detected:', args.speaker, args.text);
 
             const newCommitment = {
                 id: `commit-${Date.now()}`,
@@ -1870,7 +1764,6 @@ const handleFunctionCall = (name: string, args: any) => {
             break;
 
         case 'analyze_customer_intent':
-            console.log('🧠 Customer analysis:', args);
 
             // Trigger visual feedback
             intelligenceUpdating.value = true;
@@ -1883,7 +1776,6 @@ const handleFunctionCall = (name: string, args: any) => {
                 buyingStage: args.buyingStage || customerIntelligence.value.buyingStage,
             };
 
-            console.log('📈 Customer intel updated:', customerIntelligence.value);
 
             // Add system message for significant changes
             if (args.intent !== 'unknown' && args.intent !== customerIntelligence.value.intent) {
@@ -1897,7 +1789,6 @@ const handleFunctionCall = (name: string, args: any) => {
             break;
 
         case 'highlight_insight':
-            console.log('💡 Insight captured:', args.type, args.text);
 
             const newInsight = {
                 id: `insight-${Date.now()}`,
@@ -1923,15 +1814,12 @@ const handleFunctionCall = (name: string, args: any) => {
             }
 
             // Log current insights to verify update
-            console.log('📊 Total insights:', insights.value.length);
-            console.log('🔝 Latest insight:', newInsight);
 
             // Add to transcript for visibility
             addToTranscript('system', `💡 ${args.type.replace('_', ' ')}: ${args.text}`, 'info');
             break;
 
         case 'create_action_item':
-            console.log('📝 Action item created:', args.text);
 
             const newActionItem = {
                 id: `action-${Date.now()}`,
@@ -1961,12 +1849,10 @@ const handleFunctionCall = (name: string, args: any) => {
                 transcript.value[lastSpeakerIndex].role = args.speaker;
 
                 // Log identification for debugging
-                console.log(`🎯 Speaker identified: ${args.speaker} (${Math.round(args.confidence * 100)}% confidence)`);
             }
             break;
 
         case 'detect_information_need':
-            console.log('📋 Information need detected:', args.topic, 'Context:', args.context);
 
             // Update the conversation context for the contextual information card
             if (args.context) {
@@ -1983,17 +1869,14 @@ const handleFunctionCall = (name: string, args: any) => {
 
 const setupAudioCapture = async () => {
     try {
-        console.log('🎤 Setting up dual audio capture...');
 
         // First check if we can enumerate devices
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             const audioInputs = devices.filter((d) => d.kind === 'audioinput');
-            console.log('🎙️ Available microphones:', audioInputs.length);
 
             // If no devices or all have empty labels, we need permission
             if (audioInputs.length === 0 || audioInputs.every((d) => !d.label)) {
-                console.log('⚠️ Microphone permission needed');
             }
         } catch (enumError) {
             console.error('Error enumerating devices:', enumError);
@@ -2010,28 +1893,22 @@ const setupAudioCapture = async () => {
             },
         });
         microphoneStatus.value = 'active';
-        console.log('✅ Microphone access granted (Salesperson audio)');
 
         // Try to setup system audio capture using Swift helper
         try {
-            console.log('🔍 Checking window.remote:', window.remote ? 'Available' : 'Not available');
-            console.log('🔍 Window object keys:', Object.keys(window));
 
             // Dynamic import to avoid issues in browser
             const { SystemAudioCapture, isSystemAudioAvailable } = await import('@/services/audioCapture');
 
             // Check if system audio capture is available
             const isAvailable = await isSystemAudioAvailable();
-            console.log('🔍 System audio available check result:', isAvailable);
 
             if (isAvailable) {
-                console.log('🔊 System audio capture available, starting...');
 
                 systemAudioCapture.value = new SystemAudioCapture();
 
                 // Check permission first
-                const hasPermission = await systemAudioCapture.value.checkPermission();
-                console.log('🔒 Screen recording permission:', hasPermission ? 'granted' : 'denied');
+                await systemAudioCapture.value.checkPermission();
 
                 // Handle audio data from system
                 systemAudioCapture.value.on('audio', (pcm16: Int16Array) => {
@@ -2042,11 +1919,7 @@ const setupAudioCapture = async () => {
 
                         // Log every 20th packet for debugging
                         if (Math.random() < 0.05) {
-                            console.log('📞 System audio:', {
-                                samples: pcm16.length,
-                                level: systemAudioLevel.value,
-                                source: 'customer',
-                            });
+                            // Removed debug logging
                         }
 
                         // CRITICAL: Send as customer audio - this is from phone/zoom
@@ -2056,7 +1929,6 @@ const setupAudioCapture = async () => {
 
                 // Handle status updates
                 systemAudioCapture.value.on('status', (state: string) => {
-                    console.log('🔊 System audio status:', state);
 
                     // Map status states to our UI states
                     switch (state) {
@@ -2112,7 +1984,6 @@ const setupAudioCapture = async () => {
                 // Attach to health monitor
                 audioHealthMonitor.attach(systemAudioCapture.value);
 
-                addToTranscript('system', '✅ Dual audio capture active: Microphone (You) + System Audio (Customer)', 'success');
             } else {
                 throw new Error('System audio capture not available');
             }
@@ -2150,11 +2021,7 @@ const setupAudioCapture = async () => {
 
                 // Log occasionally for debugging
                 if (Math.random() < 0.02) {
-                    console.log('🎤 Microphone audio:', {
-                        level: audioLevel.value,
-                        source: audioSource,
-                        mode: systemAudioStatus.value === 'active' ? 'dual' : 'mixed',
-                    });
+                    // Removed debug logging
                 }
 
                 sendAudioWithMetadata(pcm16, audioSource);
@@ -2166,8 +2033,6 @@ const setupAudioCapture = async () => {
 
         // Note: System audio is handled by the Swift helper, not through Web Audio API
 
-        console.log('✅ Audio pipeline setup complete');
-        console.log(`Mode: ${systemAudioStatus.value === 'active' ? 'Dual Audio (Mic + Tab)' : 'Mixed Audio (Mic only)'}`);
     } catch (error) {
         console.error('❌ Failed to setup audio:', error);
         microphoneStatus.value = 'error';
@@ -2210,7 +2075,6 @@ const sendAudioWithMetadata = (pcm16: Int16Array, source: 'salesperson' | 'custo
 
             if (Math.random() < 0.02) {
                 // Log 2% of the time
-                console.log('🎤 Sent audio to salesperson agent');
             }
         } else if (source === 'customer' && wsCustomerCoach && wsCustomerCoach.readyState === WebSocket.OPEN) {
             // Send system audio to customer coach agent (direct to AI)
@@ -2223,7 +2087,6 @@ const sendAudioWithMetadata = (pcm16: Int16Array, source: 'salesperson' | 'custo
 
             if (Math.random() < 0.02) {
                 // Log 2% of the time
-                console.log('📞 Sent audio to customer coach agent for instant AI processing');
             }
         } else if (source === 'mixed') {
             // Mixed audio mode - send to both agents (not ideal but fallback)
@@ -2274,7 +2137,6 @@ const sendAudioWithMetadata = (pcm16: Int16Array, source: 'salesperson' | 'custo
 //   audioRestartAttempts.value++
 //
 //   try {
-//     console.log('🔄 Restarting system audio capture...')
 //     addToTranscript('system', '🔄 Restarting system audio capture...', 'warning')
 //
 //     // Restart the audio capture
@@ -2301,7 +2163,6 @@ const sendAudioWithMetadata = (pcm16: Int16Array, source: 'salesperson' | 'custo
 // }
 
 const stopSession = async () => {
-    console.log('🛑 Stopping session...');
     isEndingCall.value = true; // Mark that we're intentionally ending
 
     // Add call ended message
@@ -2355,7 +2216,6 @@ const stopSession = async () => {
 
     // Stop system audio capture
     if (systemAudioCapture.value) {
-        console.log('🔊 Stopping system audio capture...');
         await systemAudioCapture.value.stop();
         systemAudioCapture.value = null;
     }
@@ -2376,8 +2236,6 @@ const stopSession = async () => {
     isActive.value = false;
     connectionStatus.value = 'disconnected';
 
-    // Reset customer info for next session
-    customerInfo.value = { name: '', company: '' };
 
     // Reset the ending flag after a delay
     setTimeout(() => {
@@ -2412,12 +2270,11 @@ const startConversationSession = async () => {
     try {
         const response = await axios.post('/conversations', {
             template_used: selectedTemplate.value?.name || null,
-            customer_name: customerInfo.value.name || null,
-            customer_company: customerInfo.value.company || null,
+            customer_name: null,
+            customer_company: null,
         });
 
         currentSessionId.value = response.data.session_id;
-        console.log('💾 Started conversation session:', currentSessionId.value);
 
         // Start periodic saving
         saveInterval = setInterval(() => {
@@ -2442,7 +2299,6 @@ const endConversationSession = async () => {
             ai_summary: null, // Could generate summary here
         });
 
-        console.log('💾 Ended conversation session:', currentSessionId.value);
         currentSessionId.value = null;
     } catch (error) {
         console.error('❌ Failed to end conversation session:', error);
@@ -2473,7 +2329,6 @@ const saveQueuedData = async (force: boolean = false) => {
                 })),
             });
 
-            console.log('📝 Saved', transcriptsToSave.length, 'transcripts');
         }
 
         // Save insights
@@ -2489,7 +2344,6 @@ const saveQueuedData = async (force: boolean = false) => {
                 })),
             });
 
-            console.log('💡 Saved', insightsToSave.length, 'insights');
         }
     } catch (error) {
         console.error('❌ Failed to save conversation data:', error);
@@ -2503,16 +2357,8 @@ const saveQueuedData = async (force: boolean = false) => {
 // Template Management Methods
 const fetchTemplates = async () => {
     try {
-        console.log('🔄 Fetching templates...');
         const response = await axios.get('/templates');
-        console.log('📋 Templates response:', response.data);
         templates.value = response.data.templates || [];
-
-        console.log(`✅ Loaded ${templates.value.length} templates`);
-        console.log(
-            'Available templates:',
-            templates.value.map((t) => t.name),
-        );
 
         // Load persisted template or select default
         const persistedTemplateId = localStorage.getItem('selectedTemplateId');
@@ -2520,7 +2366,6 @@ const fetchTemplates = async () => {
             const persistedTemplate = templates.value.find((t) => t.id === persistedTemplateId);
             if (persistedTemplate) {
                 selectedTemplate.value = persistedTemplate;
-                console.log('📌 Restored persisted template:', persistedTemplate.name);
             }
         }
 
@@ -2531,7 +2376,6 @@ const fetchTemplates = async () => {
                 const defaultTemplate = templates.value.find((t) => t.name === 'Sales Discovery Call') || templates.value[0];
                 if (defaultTemplate) {
                     selectedTemplate.value = defaultTemplate;
-                    console.log('📌 Selected default template:', defaultTemplate.name);
                 }
             } else {
                 // Handle case when no templates exist
@@ -2546,7 +2390,6 @@ const fetchTemplates = async () => {
 };
 
 const selectTemplateFromDropdown = async (template: Template) => {
-    console.log('🎯 Selecting template:', template.name);
     selectedTemplate.value = template;
     coveredPoints.value = []; // Reset covered points when changing template
 
@@ -2608,8 +2451,6 @@ const updateCoachInstructions = async () => {
         };
 
         wsCustomerCoach.send(JSON.stringify(updateMessage));
-        console.log('🔄 Updated coach instructions with template:', selectedTemplate.value.name);
-        console.log('📊 Variables used:', mergedVariables);
 
         // Add notification to transcript
         transcript.value.push({
@@ -2662,6 +2503,15 @@ const handleBeforeUnload = (e: BeforeUnloadEvent) => {
 
 // Demo data for visualization
 onMounted(async () => {
+    // Initialize settings store with composable support status
+    const settingsStore = useSettingsStore();
+    
+    // Wait a bit for composables to check support
+    setTimeout(() => {
+        settingsStore.setOverlaySupported(isOverlaySupported.value);
+        settingsStore.setProtectionSupported(isProtectionSupported.value);
+    }, 200);
+    
     // Check API key status first
     try {
         const response = await axios.get('/api/openai/status');
@@ -2682,7 +2532,6 @@ onMounted(async () => {
     await Promise.all([fetchTemplates(), loadVariables()]);
 
     // Check environment on mount
-    console.log('🔑 API Key is configured');
 
     // Pre-check microphone permission to trigger prompt early if needed
     try {
@@ -2691,12 +2540,9 @@ onMounted(async () => {
 
         // If we can't see device labels, we don't have permission yet
         if (audioInputs.length > 0 && audioInputs.every((d) => !d.label)) {
-            console.log('🎤 Microphone permission not granted yet');
             // Don't request permission here - wait for user to start call
         } else if (audioInputs.length > 0) {
-            console.log('✅ Microphone already accessible');
         } else {
-            console.log('⚠️ No microphone devices found');
         }
     } catch (error) {
         console.error('Error checking microphone status:', error);

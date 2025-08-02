@@ -23,7 +23,7 @@
                 <!-- Progress Indicator -->
                 <div v-if="showSteps" class="mb-6 flex items-center justify-center space-x-2">
                     <div
-                        v-for="i in 2"
+                        v-for="i in 3"
                         :key="i"
                         :class="[
                             'h-1.5 w-20 rounded-full transition-all duration-300',
@@ -136,8 +136,114 @@
                             </div>
                         </div>
 
-                        <!-- Step 2: GitHub Star -->
+                        <!-- Step 2: Permissions -->
                         <div v-else-if="currentStep === 2">
+                            <h2 class="mb-6 text-xl font-medium text-gray-900 dark:text-white">Grant Permissions</h2>
+                            
+                            <p class="mb-6 text-sm text-gray-600 dark:text-gray-400">
+                                Clueless needs access to your microphone and screen to provide real-time transcription and coaching features.
+                            </p>
+
+                            <div class="space-y-4">
+                                <!-- Microphone Permission -->
+                                <div class="flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-gray-900/50">
+                                    <div class="flex items-center gap-3">
+                                        <div class="rounded-lg bg-white p-2 dark:bg-gray-800">
+                                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Microphone Access</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Required for voice transcription</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        @click="requestMicrophonePermission"
+                                        :disabled="micPermissionLoading"
+                                        class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+                                        :class="[
+                                            micPermissionStatus === 'authorized' 
+                                                ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30' 
+                                                : micPermissionStatus === 'denied'
+                                                ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
+                                                : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200',
+                                            { 'opacity-50 cursor-not-allowed': micPermissionLoading }
+                                        ]"
+                                    >
+                                        <span v-if="micPermissionLoading" class="flex items-center">
+                                            <svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Checking...
+                                        </span>
+                                        <span v-else>{{ micPermissionButtonText }}</span>
+                                    </button>
+                                </div>
+
+                                <!-- Screen Capture Permission -->
+                                <div class="flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-gray-900/50">
+                                    <div class="flex items-center gap-3">
+                                        <div class="rounded-lg bg-white p-2 dark:bg-gray-800">
+                                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 4a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm0 3a1 1 0 011-1h4a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Screen Capture</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Required for screen sharing analysis</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        @click="requestScreenPermission"
+                                        :disabled="screenPermissionLoading"
+                                        class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+                                        :class="[
+                                            screenPermissionStatus === 'authorized' 
+                                                ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30' 
+                                                : screenPermissionStatus === 'denied'
+                                                ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
+                                                : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200',
+                                            { 'opacity-50 cursor-not-allowed': screenPermissionLoading }
+                                        ]"
+                                    >
+                                        <span v-if="screenPermissionLoading" class="flex items-center">
+                                            <svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Checking...
+                                        </span>
+                                        <span v-else>{{ screenPermissionButtonText }}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div v-if="permissionsNote" class="mt-4 rounded-lg bg-yellow-50 p-3 dark:bg-yellow-900/20">
+                                <p class="text-sm text-yellow-700 dark:text-yellow-400">
+                                    {{ permissionsNote }}
+                                </p>
+                            </div>
+
+                            <div class="mt-6 flex items-center justify-between">
+                                <button
+                                    @click="currentStep = 1"
+                                    class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                >
+                                    Back
+                                </button>
+                                <button
+                                    @click="currentStep = 3"
+                                    class="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+                                >
+                                    Continue
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: GitHub Star -->
+                        <div v-else-if="currentStep === 3">
                             <div class="text-center">
                                 <div class="mb-4 inline-flex rounded-full bg-gray-100 p-3 dark:bg-gray-700">
                                     <svg class="h-8 w-8 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
@@ -175,7 +281,7 @@
 
                             <div class="mt-6 flex items-center justify-between">
                                 <button
-                                    @click="currentStep = 1"
+                                    @click="currentStep = 2"
                                     class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                 >
                                     Back
@@ -198,7 +304,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 
 const currentStep = ref(1);
 const apiKey = ref('');
@@ -208,7 +314,44 @@ const apiKeyError = ref('');
 const isValidating = ref(false);
 const hasStarred = ref(false);
 
+// Permission states
+const micPermissionStatus = ref<string>('not determined');
+const micPermissionLoading = ref<boolean>(false);
+const screenPermissionStatus = ref<string>('not determined');
+const screenPermissionLoading = ref<boolean>(false);
+
 const showSteps = computed(() => currentStep.value > 0);
+
+// Permission button texts
+const micPermissionButtonText = computed(() => {
+    switch (micPermissionStatus.value) {
+        case 'authorized': return '✓ Granted';
+        case 'denied': return 'Open Settings';
+        case 'not determined': return 'Grant Access';
+        case 'restricted': return 'Restricted';
+        default: return 'Check Status';
+    }
+});
+
+const screenPermissionButtonText = computed(() => {
+    switch (screenPermissionStatus.value) {
+        case 'authorized': return '✓ Granted';
+        case 'denied': return 'Open Settings';
+        case 'not determined': return 'Grant Access';
+        case 'restricted': return 'Restricted';
+        default: return 'Check Status';
+    }
+});
+
+const permissionsNote = computed(() => {
+    if (micPermissionStatus.value === 'denied' || screenPermissionStatus.value === 'denied') {
+        return 'Some permissions were denied. You may need to grant them in System Preferences > Privacy & Security.';
+    }
+    if (micPermissionStatus.value === 'restricted' || screenPermissionStatus.value === 'restricted') {
+        return 'Some permissions are restricted by system policy.';
+    }
+    return '';
+});
 
 const validateApiKey = () => {
     const key = apiKey.value.trim();
@@ -247,6 +390,8 @@ const saveApiKey = async () => {
 
         if (response.data.success) {
             currentStep.value = 2;
+            // Check permissions when entering step 2
+            checkPermissions();
         } else {
             apiKeyError.value = 'Failed to save API key. Please try again.';
         }
@@ -285,8 +430,97 @@ const openOpenAI = async () => {
     }
 };
 
+// Permission methods
+const checkMicrophonePermission = async () => {
+    try {
+        if ((window as any).macPermissions) {
+            const result = await (window as any).macPermissions.checkPermission('microphone');
+            if (result.success) {
+                micPermissionStatus.value = result.status || 'not determined';
+            }
+        }
+    } catch (error) {
+        console.error('Error checking microphone permission:', error);
+    }
+};
+
+const requestMicrophonePermission = async () => {
+    if (micPermissionLoading.value) return;
+    
+    try {
+        micPermissionLoading.value = true;
+        
+        if ((window as any).macPermissions) {
+            const result = await (window as any).macPermissions.requestPermission('microphone');
+            if (result.success) {
+                micPermissionStatus.value = result.status || 'not determined';
+                console.log('Microphone permission result:', result.status);
+            } else {
+                console.error('Failed to request microphone permission:', result.error);
+            }
+        } else {
+            console.warn('macPermissions API not available');
+        }
+    } catch (error) {
+        console.error('Error requesting microphone permission:', error);
+    } finally {
+        micPermissionLoading.value = false;
+    }
+};
+
+const checkScreenPermission = async () => {
+    try {
+        if ((window as any).macPermissions) {
+            const result = await (window as any).macPermissions.checkPermission('screen');
+            if (result.success) {
+                screenPermissionStatus.value = result.status || 'not determined';
+            }
+        }
+    } catch (error) {
+        console.error('Error checking screen capture permission:', error);
+    }
+};
+
+const requestScreenPermission = async () => {
+    if (screenPermissionLoading.value) return;
+    
+    try {
+        screenPermissionLoading.value = true;
+        
+        if ((window as any).macPermissions) {
+            const result = await (window as any).macPermissions.requestPermission('screen');
+            if (result.success) {
+                screenPermissionStatus.value = result.status || 'not determined';
+                console.log('Screen capture permission result:', result.status);
+            } else {
+                console.error('Failed to request screen capture permission:', result.error);
+            }
+        } else {
+            console.warn('macPermissions API not available');
+        }
+    } catch (error) {
+        console.error('Error requesting screen capture permission:', error);
+    } finally {
+        screenPermissionLoading.value = false;
+    }
+};
+
+// Initialize permissions status when entering step 2
+const checkPermissions = () => {
+    if (currentStep.value === 2) {
+        checkMicrophonePermission();
+        checkScreenPermission();
+    }
+};
+
+// Watch for step changes
+onMounted(() => {
+    // Initial check if already on step 2
+    checkPermissions();
+});
+
 const completeOnboarding = () => {
     // Navigate to realtime agent
-    router.visit('/realtime-agent');
+    router.visit('/realtime-agent-v2');
 };
 </script>

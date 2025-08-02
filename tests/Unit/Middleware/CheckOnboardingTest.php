@@ -13,6 +13,7 @@ use Tests\TestCase;
 class CheckOnboardingTest extends TestCase
 {
     private CheckOnboarding $middleware;
+
     private ApiKeyService $mockApiKeyService;
 
     protected function setUp(): void
@@ -33,7 +34,7 @@ class CheckOnboardingTest extends TestCase
         $request = Request::create('/onboarding', 'GET');
         $route = new Route(['GET'], '/onboarding', []);
         $route->name('onboarding');
-        $request->setRouteResolver(fn() => $route);
+        $request->setRouteResolver(fn () => $route);
 
         $this->mockApiKeyService->shouldNotReceive('hasApiKey');
 
@@ -48,18 +49,18 @@ class CheckOnboardingTest extends TestCase
     {
         $excludedRoutes = [
             'api-keys.edit',
-            'api-keys.update', 
+            'api-keys.update',
             'api-keys.destroy',
             'api.openai.status',
             'api.openai.api-key.store',
-            'appearance'
+            'appearance',
         ];
 
         foreach ($excludedRoutes as $routeName) {
             $request = Request::create('/test', 'GET');
             $route = new Route(['GET'], '/test', []);
             $route->name($routeName);
-            $request->setRouteResolver(fn() => $route);
+            $request->setRouteResolver(fn () => $route);
 
             $this->mockApiKeyService->shouldNotReceive('hasApiKey');
 
@@ -76,7 +77,7 @@ class CheckOnboardingTest extends TestCase
         $request = Request::create('/api/some-endpoint', 'POST');
         $route = new Route(['POST'], '/api/some-endpoint', []);
         $route->name('api.some-endpoint');
-        $request->setRouteResolver(fn() => $route);
+        $request->setRouteResolver(fn () => $route);
 
         $this->mockApiKeyService->shouldNotReceive('hasApiKey');
 
@@ -92,7 +93,7 @@ class CheckOnboardingTest extends TestCase
         $request = Request::create('/dashboard', 'GET');
         $route = new Route(['GET'], '/dashboard', []);
         $route->name('dashboard');
-        $request->setRouteResolver(fn() => $route);
+        $request->setRouteResolver(fn () => $route);
 
         $this->mockApiKeyService->shouldReceive('hasApiKey')
             ->once()
@@ -111,7 +112,7 @@ class CheckOnboardingTest extends TestCase
         $request = Request::create('/dashboard', 'GET');
         $route = new Route(['GET'], '/dashboard', []);
         $route->name('dashboard');
-        $request->setRouteResolver(fn() => $route);
+        $request->setRouteResolver(fn () => $route);
 
         $this->mockApiKeyService->shouldReceive('hasApiKey')
             ->once()

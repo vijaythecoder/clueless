@@ -45,7 +45,7 @@ class CheckOnboarding
         }
 
         // Check if API key exists
-        if (!$this->apiKeyService->hasApiKey()) {
+        if (! $this->apiKeyService->hasApiKey()) {
             // If not on onboarding page and no API key, redirect to onboarding
             if ($request->route() && $request->route()->getName() !== 'onboarding') {
                 return redirect()->route('onboarding');

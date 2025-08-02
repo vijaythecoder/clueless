@@ -21,7 +21,7 @@ class ConversationSessionFactory extends Factory
     {
         $startedAt = $this->faker->dateTimeBetween('-1 month', 'now');
         $endedAt = $this->faker->optional(0.7)->dateTimeBetween($startedAt, 'now');
-        
+
         return [
             'user_id' => null, // Single-user desktop app
             'title' => $this->faker->sentence(4),
@@ -69,7 +69,7 @@ class ConversationSessionFactory extends Factory
         return $this->state(function (array $attributes) {
             $startedAt = $attributes['started_at'] ?? now()->subHour();
             $endedAt = now();
-            
+
             return [
                 'ended_at' => $endedAt,
                 'duration_seconds' => $endedAt->diffInSeconds($startedAt),

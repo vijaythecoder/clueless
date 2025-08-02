@@ -25,9 +25,10 @@ jobs:
           php-version: '8.4'
 
       - name: Install Dependencies
-        run: |
-          composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-          npm install
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+      
+      - name: Install Node Dependencies
+        run: npm ci --omit=optional
 
       - name: Run Pint
         run: vendor/bin/pint

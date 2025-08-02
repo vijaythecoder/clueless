@@ -1,6 +1,5 @@
 <?php
 
-use App\Services\ApiKeyService;
 use Illuminate\Support\Facades\Cache;
 use Tests\Traits\MocksOpenAI;
 
@@ -14,10 +13,10 @@ test('generateEphemeralKey returns success with valid API key', function () {
     // Arrange
     Cache::put('app_openai_api_key', mockApiKey());
     $this->mockEphemeralKeySuccess();
-    
+
     // Act
     $response = $this->postJson('/api/realtime/ephemeral-key');
-    
+
     // Assert
     $response->assertStatus(200)
         ->assertJsonStructure([
@@ -31,17 +30,17 @@ test('generateEphemeralKey returns success with valid API key', function () {
             'status' => 'success',
             'model' => 'gpt-4o-mini-realtime-preview-2024-12-17',
         ]);
-    
+
     expect($response->json('ephemeralKey'))->toStartWith('ek_');
 });
 
 test('generateEphemeralKey returns error when no API key configured', function () {
     // Arrange
     Config::set('openai.api_key', null); // Ensure no config key
-    
+
     // Act
     $response = $this->postJson('/api/realtime/ephemeral-key');
-    
+
     // Assert
     $response->assertStatus(422)
         ->assertJson([
@@ -54,10 +53,10 @@ test('generateEphemeralKey returns error when OpenAI API fails', function () {
     // Arrange
     Cache::put('app_openai_api_key', mockApiKey());
     $this->mockEphemeralKeyFailure();
-    
+
     // Act
     $response = $this->postJson('/api/realtime/ephemeral-key');
-    
+
     // Assert
     $response->assertStatus(500)
         ->assertJson([
@@ -70,10 +69,10 @@ test('generateEphemeralKey returns error when response structure is invalid', fu
     // Arrange
     Cache::put('app_openai_api_key', mockApiKey());
     $this->mockEphemeralKeyInvalidResponse();
-    
+
     // Act
     $response = $this->postJson('/api/realtime/ephemeral-key');
-    
+
     // Assert
     $response->assertStatus(500)
         ->assertJson([
@@ -88,15 +87,16 @@ test('generateEphemeralKey accepts custom voice parameter', function () {
     Http::fake([
         'api.openai.com/v1/realtime/sessions' => function ($request) {
             expect($request->data()['voice'])->toBe('nova');
+
             return Http::response(mockEphemeralKeyResponse());
         },
     ]);
-    
+
     // Act
     $response = $this->postJson('/api/realtime/ephemeral-key', [
         'voice' => 'nova',
     ]);
-    
+
     // Assert
     $response->assertStatus(200);
 });
@@ -107,13 +107,14 @@ test('generateEphemeralKey uses default voice when not provided', function () {
     Http::fake([
         'api.openai.com/v1/realtime/sessions' => function ($request) {
             expect($request->data()['voice'])->toBe('alloy');
+
             return Http::response(mockEphemeralKeyResponse());
         },
     ]);
-    
+
     // Act
     $response = $this->postJson('/api/realtime/ephemeral-key');
-    
+
     // Assert
     $response->assertStatus(200);
 });
@@ -122,10 +123,10 @@ test('generateEphemeralKey handles connection timeout gracefully', function () {
     // Arrange
     Cache::put('app_openai_api_key', mockApiKey());
     $this->mockHttpTimeout();
-    
+
     // Act
     $response = $this->postJson('/api/realtime/ephemeral-key');
-    
+
     // Assert
     $response->assertStatus(500)
         ->assertJson([
@@ -138,10 +139,10 @@ test('generateEphemeralKey uses API key from config when cache is empty', functi
     // Arrange
     Config::set('openai.api_key', mockApiKey());
     $this->mockEphemeralKeySuccess();
-    
+
     // Act
     $response = $this->postJson('/api/realtime/ephemeral-key');
-    
+
     // Assert
     $response->assertStatus(200)
         ->assertJson(['status' => 'success']);

@@ -105,7 +105,7 @@ class TemplateController extends Controller
         $remainingTemplatesCount = Template::where('id', '!=', $template->id)->count();
         if ($remainingTemplatesCount === 0) {
             return response()->json([
-                'error' => 'Cannot delete the last remaining template. At least one template must exist.'
+                'error' => 'Cannot delete the last remaining template. At least one template must exist.',
             ], 422);
         }
 

@@ -8,7 +8,6 @@ use Tests\TestCase;
 
 class ApiKeyStoreTest extends TestCase
 {
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,14 +36,14 @@ class ApiKeyStoreTest extends TestCase
             ->with($validApiKey);
 
         $response = $this->postJson('/api/openai/api-key', [
-            'api_key' => $validApiKey
+            'api_key' => $validApiKey,
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true,
-                     'message' => 'API key saved successfully.'
-                 ]);
+            ->assertJson([
+                'success' => true,
+                'message' => 'API key saved successfully.',
+            ]);
     }
 
     public function test_rejects_invalid_api_key(): void
@@ -62,14 +61,14 @@ class ApiKeyStoreTest extends TestCase
         $mockApiKeyService->shouldNotReceive('setApiKey');
 
         $response = $this->postJson('/api/openai/api-key', [
-            'api_key' => $invalidApiKey
+            'api_key' => $invalidApiKey,
         ]);
 
         $response->assertStatus(422)
-                 ->assertJson([
-                     'success' => false,
-                     'message' => 'The provided API key is invalid. Please check and try again.'
-                 ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'The provided API key is invalid. Please check and try again.',
+            ]);
     }
 
     public function test_validates_required_api_key_field(): void
@@ -77,27 +76,27 @@ class ApiKeyStoreTest extends TestCase
         $response = $this->postJson('/api/openai/api-key', []);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['api_key']);
+            ->assertJsonValidationErrors(['api_key']);
     }
 
     public function test_validates_api_key_minimum_length(): void
     {
         $response = $this->postJson('/api/openai/api-key', [
-            'api_key' => 'sk-short'
+            'api_key' => 'sk-short',
         ]);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['api_key']);
+            ->assertJsonValidationErrors(['api_key']);
     }
 
     public function test_validates_api_key_is_string(): void
     {
         $response = $this->postJson('/api/openai/api-key', [
-            'api_key' => 123456
+            'api_key' => 123456,
         ]);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['api_key']);
+            ->assertJsonValidationErrors(['api_key']);
     }
 
     public function test_handles_api_key_service_exception(): void
@@ -113,7 +112,7 @@ class ApiKeyStoreTest extends TestCase
             ->andThrow(new \Exception('Service error'));
 
         $response = $this->postJson('/api/openai/api-key', [
-            'api_key' => $validApiKey
+            'api_key' => $validApiKey,
         ]);
 
         // Controller doesn't handle exceptions, so it returns 500
@@ -124,7 +123,7 @@ class ApiKeyStoreTest extends TestCase
     {
         // This test ensures the middleware allows access to the API key store endpoint
         // even when no API key is configured
-        
+
         $mockApiKeyService = Mockery::mock(ApiKeyService::class);
         $this->app->instance(ApiKeyService::class, $mockApiKeyService);
 
@@ -138,7 +137,7 @@ class ApiKeyStoreTest extends TestCase
             ->once();
 
         $response = $this->postJson('/api/openai/api-key', [
-            'api_key' => $validApiKey
+            'api_key' => $validApiKey,
         ]);
 
         $response->assertStatus(200);

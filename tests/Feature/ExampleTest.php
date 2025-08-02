@@ -7,7 +7,7 @@ it('returns a successful response', function () {
     $mockApiKeyService = Mockery::mock(ApiKeyService::class);
     $mockApiKeyService->shouldReceive('hasApiKey')->andReturn(true);
     $this->app->instance(ApiKeyService::class, $mockApiKeyService);
-    
+
     $response = $this->get('/');
 
     $response->assertStatus(200);

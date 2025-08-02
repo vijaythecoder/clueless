@@ -13,6 +13,15 @@ declare global {
                 setBackgroundColor?: (color: string) => void;
             };
         };
+        macPermissions?: {
+            overlayMode: {
+                checkSupport: () => Promise<{ supported: boolean; platform?: string; reason?: string; error?: string }>;
+                setAlwaysOnTop: (flag: boolean, level?: string) => Promise<{ success: boolean; alwaysOnTop?: boolean; error?: string }>;
+                setOpacity: (opacity: number) => Promise<{ success: boolean; opacity?: number; error?: string }>;
+                getOpacity: () => Promise<{ success: boolean; opacity?: number; error?: string }>;
+                setBackgroundColor: (color: string) => Promise<{ success: boolean; color?: string; error?: string }>;
+            };
+        };
     }
 }
 
@@ -22,7 +31,21 @@ export function useOverlayMode() {
     let previousTheme: string | null = null;
 
     // Check if overlay mode is supported
-    const checkSupport = () => {
+    const checkSupport = async () => {
+        // First try IPC method
+        if (window.macPermissions?.overlayMode) {
+            try {
+                const result = await window.macPermissions.overlayMode.checkSupport();
+                if (result.supported) {
+                    isSupported.value = true;
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error checking overlay mode support via IPC:', error);
+            }
+        }
+        
+        // Fallback to window.remote for backward compatibility
         try {
             if (window.remote && typeof window.remote.getCurrentWindow === 'function') {
                 const currentWindow = window.remote.getCurrentWindow();
@@ -49,7 +72,7 @@ export function useOverlayMode() {
     };
 
     // Toggle overlay mode
-    const toggleOverlayMode = () => {
+    const toggleOverlayMode = async () => {
         if (!isSupported.value) {
             return false;
         }
@@ -57,20 +80,23 @@ export function useOverlayMode() {
         const newState = !isOverlayMode.value;
 
         try {
-            const currentWindow = window.remote!.getCurrentWindow();
-
             if (newState) {
                 // Enable overlay mode
-                currentWindow.setAlwaysOnTop(true, 'floating');
-
-                // Set transparent background for overlay mode
-                if (typeof currentWindow.setBackgroundColor === 'function') {
-                    currentWindow.setBackgroundColor('#00000000');
-                }
-
-                // Set window opacity for overlay mode visibility
-                if (typeof currentWindow.setOpacity === 'function') {
-                    currentWindow.setOpacity(0.8); // 80% opacity for more transparency
+                if (window.macPermissions?.overlayMode) {
+                    // Use IPC methods
+                    await window.macPermissions.overlayMode.setAlwaysOnTop(true, 'floating');
+                    await window.macPermissions.overlayMode.setBackgroundColor('#00000000');
+                    await window.macPermissions.overlayMode.setOpacity(0.8);
+                } else if (window.remote) {
+                    // Fallback to window.remote
+                    const currentWindow = window.remote.getCurrentWindow();
+                    currentWindow.setAlwaysOnTop(true, 'floating');
+                    if (typeof currentWindow.setBackgroundColor === 'function') {
+                        currentWindow.setBackgroundColor('#00000000');
+                    }
+                    if (typeof currentWindow.setOpacity === 'function') {
+                        currentWindow.setOpacity(0.8);
+                    }
                 }
 
                 // Save current theme and force dark mode
@@ -78,17 +104,21 @@ export function useOverlayMode() {
                 updateTheme('dark');
             } else {
                 // Disable overlay mode
-                currentWindow.setAlwaysOnTop(false);
-
-                // Restore opaque background
-                if (typeof currentWindow.setBackgroundColor === 'function') {
-                    // Set opaque background to match the app
-                    currentWindow.setBackgroundColor('#f5f7fa');
-                }
-
-                // Restore full window opacity
-                if (typeof currentWindow.setOpacity === 'function') {
-                    currentWindow.setOpacity(1); // Full opacity for normal mode
+                if (window.macPermissions?.overlayMode) {
+                    // Use IPC methods
+                    await window.macPermissions.overlayMode.setAlwaysOnTop(false);
+                    await window.macPermissions.overlayMode.setBackgroundColor('#f5f7fa');
+                    await window.macPermissions.overlayMode.setOpacity(1);
+                } else if (window.remote) {
+                    // Fallback to window.remote
+                    const currentWindow = window.remote.getCurrentWindow();
+                    currentWindow.setAlwaysOnTop(false);
+                    if (typeof currentWindow.setBackgroundColor === 'function') {
+                        currentWindow.setBackgroundColor('#f5f7fa');
+                    }
+                    if (typeof currentWindow.setOpacity === 'function') {
+                        currentWindow.setOpacity(1);
+                    }
                 }
 
                 // Restore previous theme
@@ -110,7 +140,8 @@ export function useOverlayMode() {
             );
 
             return true;
-        } catch {
+        } catch (error) {
+            console.error('Error toggling overlay mode:', error);
             return false;
         }
     };
@@ -136,17 +167,21 @@ export function useOverlayMode() {
 
     // Initialize
     onMounted(() => {
-        setTimeout(() => {
-            if (checkSupport()) {
+        setTimeout(async () => {
+            if (await checkSupport()) {
                 const savedPreference = loadPreference();
                 if (savedPreference) {
-                    enableOverlayMode();
+                    await enableOverlayMode();
                 } else {
                     // Ensure normal mode has opaque background on startup
                     try {
-                        const currentWindow = window.remote!.getCurrentWindow();
-                        if (typeof currentWindow.setBackgroundColor === 'function') {
-                            currentWindow.setBackgroundColor('#f5f7fa');
+                        if (window.macPermissions?.overlayMode) {
+                            await window.macPermissions.overlayMode.setBackgroundColor('#f5f7fa');
+                        } else if (window.remote) {
+                            const currentWindow = window.remote.getCurrentWindow();
+                            if (typeof currentWindow.setBackgroundColor === 'function') {
+                                currentWindow.setBackgroundColor('#f5f7fa');
+                            }
                         }
                     } catch {}
                 }

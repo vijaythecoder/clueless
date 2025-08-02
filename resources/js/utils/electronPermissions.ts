@@ -32,14 +32,6 @@ export async function checkMicrophoneAvailability(): Promise<{ available: boolea
         const devices = await navigator.mediaDevices.enumerateDevices();
         const audioInputs = devices.filter((device) => device.kind === 'audioinput');
 
-        console.log(
-            'Available audio input devices:',
-            audioInputs.map((d) => ({
-                deviceId: d.deviceId,
-                label: d.label || 'Unnamed Device',
-                groupId: d.groupId,
-            })),
-        );
 
         if (audioInputs.length === 0) {
             return { available: false, message: 'No microphone devices found' };
@@ -67,19 +59,16 @@ export async function selectBestMicrophone(devices: MediaDeviceInfo[]): Promise<
     const externalMic = nonDefaultDevices.find((d) => d.label.toLowerCase().includes('usb') || d.label.toLowerCase().includes('external'));
 
     if (externalMic) {
-        console.log('Selected external microphone:', externalMic.label);
         return externalMic.deviceId;
     }
 
     // Use first non-default device
     if (nonDefaultDevices.length > 0) {
-        console.log('Selected microphone:', nonDefaultDevices[0].label);
         return nonDefaultDevices[0].deviceId;
     }
 
     // Fallback to first available
     if (devices.length > 0) {
-        console.log('Using default microphone:', devices[0].label);
         return devices[0].deviceId;
     }
 

@@ -2,7 +2,6 @@
 
 use App\Models\ConversationSession;
 use App\Models\ConversationTranscript;
-use App\Models\ConversationInsight;
 use App\Services\ApiKeyService;
 
 beforeEach(function () {
@@ -10,7 +9,7 @@ beforeEach(function () {
     $mockApiKeyService = Mockery::mock(ApiKeyService::class);
     $mockApiKeyService->shouldReceive('hasApiKey')->andReturn(true);
     $this->app->instance(ApiKeyService::class, $mockApiKeyService);
-    
+
     // Create a test conversation session for some tests
     $this->session = ConversationSession::create([
         'user_id' => null,
@@ -25,9 +24,9 @@ beforeEach(function () {
 test('can view conversations index page', function () {
     // Create some test sessions
     ConversationSession::factory()->count(5)->create();
-    
+
     $response = $this->get('/conversations');
-    
+
     $response->assertStatus(200)
         ->assertInertia(fn ($page) => $page
             ->component('Conversations/Index')
@@ -44,12 +43,12 @@ test('conversations are paginated and ordered by started_at desc', function () {
     ConversationSession::create(['user_id' => null, 'started_at' => now()->subDays(3)]);
     ConversationSession::create(['user_id' => null, 'started_at' => now()->subDays(1)]);
     ConversationSession::create(['user_id' => null, 'started_at' => now()->subDays(2)]);
-    
+
     $response = $this->get('/conversations');
-    
+
     $response->assertStatus(200);
     $sessions = $response->original->getData()['page']['props']['sessions']['data'];
-    
+
     // Check ordering
     expect($sessions[0]['started_at'])->toBeGreaterThan($sessions[1]['started_at']);
     expect($sessions[1]['started_at'])->toBeGreaterThan($sessions[2]['started_at']);
@@ -64,15 +63,15 @@ test('can view specific conversation session', function () {
         'spoken_at' => now(),
         'order_index' => 1,
     ]);
-    
+
     $this->session->insights()->create([
         'insight_type' => 'key_insight',
         'data' => ['text' => 'Customer interested in product'],
         'captured_at' => now(),
     ]);
-    
+
     $response = $this->get("/conversations/{$this->session->id}");
-    
+
     $response->assertStatus(200)
         ->assertInertia(fn ($page) => $page
             ->component('Conversations/Show')
@@ -84,7 +83,7 @@ test('can view specific conversation session', function () {
 
 test('show returns 404 for non-existent session', function () {
     $response = $this->get('/conversations/999999');
-    
+
     $response->assertStatus(404);
 });
 
@@ -95,7 +94,7 @@ test('can start new conversation session', function () {
         'customer_name' => 'Jane Smith',
         'customer_company' => 'Tech Corp',
     ]);
-    
+
     $response->assertStatus(200)
         ->assertJsonStructure([
             'session_id',
@@ -104,7 +103,7 @@ test('can start new conversation session', function () {
         ->assertJson([
             'message' => 'Session started successfully',
         ]);
-    
+
     $this->assertDatabaseHas('conversation_sessions', [
         'template_used' => 'sales_call',
         'customer_name' => 'Jane Smith',
@@ -115,9 +114,9 @@ test('can start new conversation session', function () {
 
 test('can start conversation session without optional fields', function () {
     $response = $this->postJson('/conversations');
-    
+
     $response->assertStatus(200);
-    
+
     $this->assertDatabaseHas('conversation_sessions', [
         'user_id' => null,
         'template_used' => null,
@@ -135,14 +134,14 @@ test('can end conversation session with metrics', function () {
         ['insight_type' => 'commitment', 'data' => ['text' => 'Test'], 'captured_at' => now()],
         ['insight_type' => 'action_item', 'data' => ['text' => 'Test'], 'captured_at' => now()],
     ]);
-    
+
     $this->session->transcripts()->create([
         'speaker' => 'salesperson',
         'text' => 'Test transcript',
         'spoken_at' => now(),
         'order_index' => 1,
     ]);
-    
+
     $response = $this->postJson("/conversations/{$this->session->id}/end", [
         'duration_seconds' => 300,
         'final_intent' => 'high',
@@ -151,14 +150,14 @@ test('can end conversation session with metrics', function () {
         'final_sentiment' => 'positive',
         'ai_summary' => 'Great conversation with customer.',
     ]);
-    
+
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'Session ended successfully',
         ]);
-    
+
     $this->session->refresh();
-    
+
     expect($this->session->ended_at)->not->toBeNull();
     expect($this->session->duration_seconds)->toBe(300);
     expect($this->session->final_intent)->toBe('high');
@@ -177,7 +176,7 @@ test('end session requires duration_seconds', function () {
     $response = $this->postJson("/conversations/{$this->session->id}/end", [
         'final_intent' => 'high',
     ]);
-    
+
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['duration_seconds']);
 });
@@ -191,7 +190,7 @@ test('can save single transcript', function () {
         'group_id' => 'group-123',
         'system_category' => 'greeting',
     ]);
-    
+
     $response->assertStatus(200)
         ->assertJsonStructure([
             'transcript_id',
@@ -200,7 +199,7 @@ test('can save single transcript', function () {
         ->assertJson([
             'message' => 'Transcript saved successfully',
         ]);
-    
+
     $this->assertDatabaseHas('conversation_transcripts', [
         'session_id' => $this->session->id,
         'speaker' => 'customer',
@@ -217,15 +216,15 @@ test('transcript order_index increments correctly', function () {
         ['speaker' => 'salesperson', 'text' => 'First', 'spoken_at' => now(), 'order_index' => 1],
         ['speaker' => 'customer', 'text' => 'Second', 'spoken_at' => now(), 'order_index' => 2],
     ]);
-    
+
     $response = $this->postJson("/conversations/{$this->session->id}/transcript", [
         'speaker' => 'salesperson',
         'text' => 'Third transcript',
         'spoken_at' => now()->timestamp * 1000,
     ]);
-    
+
     $response->assertStatus(200);
-    
+
     $transcript = ConversationTranscript::where('text', 'Third transcript')->first();
     expect($transcript->order_index)->toBe(3);
 });
@@ -236,7 +235,7 @@ test('save transcript validates speaker values', function () {
         'text' => 'Test',
         'spoken_at' => now()->timestamp * 1000,
     ]);
-    
+
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['speaker']);
 });
@@ -263,18 +262,18 @@ test('can save batch transcripts', function () {
             'group_id' => 'group-2',
         ],
     ];
-    
+
     $response = $this->postJson("/conversations/{$this->session->id}/transcripts", [
         'transcripts' => $transcripts,
     ]);
-    
+
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'Transcripts saved successfully',
         ]);
-    
+
     expect($this->session->transcripts()->count())->toBe(3);
-    
+
     // Check order indexes
     $savedTranscripts = $this->session->transcripts()->orderBy('order_index')->get();
     expect($savedTranscripts[0]->order_index)->toBe(1);
@@ -295,11 +294,11 @@ test('batch transcripts validates each transcript', function () {
             'spoken_at' => now()->timestamp * 1000,
         ],
     ];
-    
+
     $response = $this->postJson("/conversations/{$this->session->id}/transcripts", [
         'transcripts' => $transcripts,
     ]);
-    
+
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['transcripts.1.speaker']);
 });
@@ -314,7 +313,7 @@ test('can save single insight', function () {
         ],
         'captured_at' => now()->timestamp * 1000,
     ]);
-    
+
     $response->assertStatus(200)
         ->assertJsonStructure([
             'insight_id',
@@ -323,7 +322,7 @@ test('can save single insight', function () {
         ->assertJson([
             'message' => 'Insight saved successfully',
         ]);
-    
+
     $this->assertDatabaseHas('conversation_insights', [
         'session_id' => $this->session->id,
         'insight_type' => 'key_insight',
@@ -349,16 +348,16 @@ test('can save batch insights', function () {
             'captured_at' => now()->addSeconds(2)->timestamp * 1000,
         ],
     ];
-    
+
     $response = $this->postJson("/conversations/{$this->session->id}/insights", [
         'insights' => $insights,
     ]);
-    
+
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'Insights saved successfully',
         ]);
-    
+
     expect($this->session->insights()->count())->toBe(3);
     expect($this->session->insights()->where('insight_type', 'topic')->count())->toBe(1);
     expect($this->session->insights()->where('insight_type', 'commitment')->count())->toBe(1);
@@ -370,25 +369,25 @@ test('can update session notes', function () {
     $response = $this->patchJson("/conversations/{$this->session->id}/notes", [
         'user_notes' => 'Customer seems very interested in enterprise features.',
     ]);
-    
+
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'Notes updated successfully',
         ]);
-    
+
     $this->session->refresh();
     expect($this->session->user_notes)->toBe('Customer seems very interested in enterprise features.');
 });
 
 test('can clear session notes', function () {
     $this->session->update(['user_notes' => 'Some existing notes']);
-    
+
     $response = $this->patchJson("/conversations/{$this->session->id}/notes", [
         'user_notes' => null,
     ]);
-    
+
     $response->assertStatus(200);
-    
+
     $this->session->refresh();
     expect($this->session->user_notes)->toBeNull();
 });
@@ -398,19 +397,19 @@ test('can update session title', function () {
     $response = $this->patchJson("/conversations/{$this->session->id}/title", [
         'title' => 'Important Sales Call with Acme Corp',
     ]);
-    
+
     $response->assertStatus(200)
         ->assertJson([
             'message' => 'Title updated successfully',
         ]);
-    
+
     $this->session->refresh();
     expect($this->session->title)->toBe('Important Sales Call with Acme Corp');
 });
 
 test('update title validates required field', function () {
     $response = $this->patchJson("/conversations/{$this->session->id}/title", []);
-    
+
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['title']);
 });
@@ -419,7 +418,7 @@ test('update title validates max length', function () {
     $response = $this->patchJson("/conversations/{$this->session->id}/title", [
         'title' => str_repeat('a', 256),
     ]);
-    
+
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['title']);
 });
@@ -427,12 +426,12 @@ test('update title validates max length', function () {
 // Delete tests
 test('can delete conversation session', function () {
     $sessionId = $this->session->id;
-    
+
     $response = $this->delete("/conversations/{$sessionId}");
-    
+
     $response->assertRedirect('/conversations')
         ->assertSessionHas('message', 'Conversation deleted successfully');
-    
+
     $this->assertDatabaseMissing('conversation_sessions', ['id' => $sessionId]);
 });
 
@@ -444,19 +443,19 @@ test('delete removes related transcripts and insights', function () {
         'spoken_at' => now(),
         'order_index' => 1,
     ]);
-    
+
     $this->session->insights()->create([
         'insight_type' => 'topic',
         'data' => ['text' => 'Test'],
         'captured_at' => now(),
     ]);
-    
+
     $sessionId = $this->session->id;
-    
+
     $response = $this->delete("/conversations/{$sessionId}");
-    
+
     $response->assertRedirect('/conversations');
-    
+
     // Check cascade deletion
     $this->assertDatabaseMissing('conversation_transcripts', ['session_id' => $sessionId]);
     $this->assertDatabaseMissing('conversation_insights', ['session_id' => $sessionId]);

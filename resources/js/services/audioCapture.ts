@@ -125,7 +125,6 @@ export class SystemAudioCapture extends SimpleEventEmitter {
             // Kill any existing macos-audio-capture processes
             try {
                 execSync('pkill -f macos-audio-capture', { encoding: 'utf8' });
-                console.log('🔄 Killed existing audio capture processes');
                 // Wait a bit for processes to die
                 await new Promise((resolve) => setTimeout(resolve, 500));
             } catch {
@@ -168,8 +167,6 @@ export class SystemAudioCapture extends SimpleEventEmitter {
             execPath = path.join(resourcesDir, 'app.asar.unpacked', 'resources', 'app', 'native', 'macos-audio-capture', 'macos-audio-capture');
         }
 
-        console.log('App path:', appPath);
-        console.log('Starting audio capture from:', execPath);
 
         // Check if executable exists
         const fs = window.remote.require('fs');
@@ -189,7 +186,6 @@ export class SystemAudioCapture extends SimpleEventEmitter {
             throw error;
         }
 
-        console.log('✅ Swift executable found');
 
         // Spawn the Swift process
         this.process = spawn(execPath, [], {
@@ -209,7 +205,6 @@ export class SystemAudioCapture extends SimpleEventEmitter {
 
         // Handle process exit
         this.process.on('exit', (code: number) => {
-            console.log('Audio capture process exited with code:', code);
             this.emit('exit', code);
             this.process = null;
         });
@@ -240,8 +235,7 @@ export class SystemAudioCapture extends SimpleEventEmitter {
 
                     // Attempt to restart if auto-restart is enabled
                     if (this.autoRestartEnabled && !this.isRestarting) {
-                        console.log('🔄 Auto-restarting due to heartbeat timeout');
-                        setTimeout(() => this.restart(), 1000);
+                            setTimeout(() => this.restart(), 1000);
                     }
                 }
             }
@@ -275,7 +269,6 @@ export class SystemAudioCapture extends SimpleEventEmitter {
 
     async restart(): Promise<void> {
         if (this.isRestarting) {
-            console.log('Already restarting audio capture, skipping...');
             return;
         }
 
@@ -360,7 +353,6 @@ export class SystemAudioCapture extends SimpleEventEmitter {
 
                     case 'heartbeat':
                         this.lastHeartbeat = new Date();
-                        console.log('💓 Audio capture heartbeat received');
                         this.emit('heartbeat');
                         break;
 
@@ -396,8 +388,7 @@ export class SystemAudioCapture extends SimpleEventEmitter {
                                 this.errorCount >= 3;
 
                             if (shouldRestart) {
-                                console.log('Auto-restarting audio capture due to error:', packet.message);
-                                setTimeout(() => this.restart(), 1000);
+                                    setTimeout(() => this.restart(), 1000);
                             }
                         }
                         break;
@@ -448,7 +439,6 @@ export async function isSystemAudioAvailable(): Promise<boolean> {
         try {
             fs.accessSync(execPath);
         } catch {
-            console.log('Swift executable not found at:', execPath);
             return false;
         }
 
@@ -457,7 +447,6 @@ export async function isSystemAudioAvailable(): Promise<boolean> {
         const majorVersion = parseInt(release.split('.')[0]);
 
         const isSupported = majorVersion >= 22; // macOS 13.0 corresponds to Darwin 22.x
-        console.log('macOS version check:', release, 'Supported:', isSupported);
 
         return isSupported;
     } catch (error) {

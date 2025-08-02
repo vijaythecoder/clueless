@@ -1,6 +1,6 @@
 <template>
     <div
-        class="flex h-48 flex-shrink-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+        class="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900"
     >
         <div class="mb-3 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Contextual Information</h3>
@@ -13,7 +13,7 @@
 
         <div
             v-else-if="relevantSection"
-            class="scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent flex-1 overflow-y-auto"
+            class="scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent flex-1 min-h-0 overflow-y-auto"
         >
             <div class="space-y-3">
                 <transition
@@ -24,7 +24,7 @@
                     leave-from-class="transform opacity-100 scale-100"
                     leave-to-class="transform opacity-0 scale-95"
                 >
-                    <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900" :key="relevantSection.title">
+                    <div class="rounded-lg border border-gray-200 bg-gray-100 p-3 dark:border-gray-700 dark:bg-gray-800" :key="relevantSection.title">
                         <h4 class="mb-1 text-xs font-semibold text-gray-700 uppercase dark:text-gray-300">
                             {{ relevantSection.title }}
                         </h4>

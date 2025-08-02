@@ -18,7 +18,7 @@ const features = [
         icon: Mic,
         title: 'Realtime Agent',
         description: 'Voice conversations with real-time AI coaching',
-        href: '/realtime-agent',
+        href: '/realtime-agent-v2',
         color: 'text-green-600 dark:text-green-400',
     },
     {
