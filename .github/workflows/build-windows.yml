@@ -1,0 +1,150 @@
+name: Build Windows App
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+    paths-ignore:
+      - '.github/**'
+      - '!.github/workflows/build-windows.yml'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Windows App
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, json, mbstring, pdo
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(grep "'version' =>" config/nativephp.php | sed -E "s/.*'([0-9]+\.[0-9]+\.[0-9]+)'.*/\1/")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
+
+      - name: Clean npm cache and node_modules
+        shell: cmd
+        run: |
+          if exist node_modules rmdir /s /q node_modules
+          if exist package-lock.json del package-lock.json
+          npm cache clean --force
+
+      - name: Install NPM dependencies (Windows-specific)
+        shell: cmd
+        run: |
+          echo Installing npm dependencies for Windows...
+          npm install --omit=dev --no-optional
+          echo Dependencies installed successfully
+
+      - name: Copy .env file
+        run: cp .env.example .env
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Generate Ziggy routes
+        run: php artisan ziggy:generate
+
+      - name: Install Electron dependencies
+        working-directory: vendor/nativephp/electron/resources/js
+        shell: cmd
+        run: |
+          if exist node_modules rmdir /s /q node_modules
+          npm install --no-optional
+
+      - name: Rebuild Electron native modules
+        working-directory: vendor/nativephp/electron/resources/js
+        run: npx electron-rebuild
+
+      - name: Build NativePHP application
+        env:
+          NATIVEPHP_APP_VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          php artisan native:build win ${{ matrix.arch }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Clueless-${{ steps.version.outputs.VERSION }}-win-${{ matrix.arch }}
+          path: dist/*.exe
+          retention-days: 5
+
+  release:
+    name: Create Windows Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep "'version' =>" config/nativephp.php | sed -E "s/.*'([0-9]+\.[0-9]+\.[0-9]+)'.*/\1/")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download x64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Clueless-${{ steps.version.outputs.VERSION }}-win-x64
+          path: ./artifacts/win-x64
+
+      - name: Upload Windows Release Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Find the existing release for v${{ steps.version.outputs.VERSION }}
+          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/v${{ steps.version.outputs.VERSION }} --jq '.id' || echo "")
+          
+          if [ -z "$RELEASE_ID" ]; then
+            echo "No release found for v${{ steps.version.outputs.VERSION }}. Windows build will be added when release is created."
+            exit 0
+          fi
+          
+          # Upload the Windows executables
+          gh release upload v${{ steps.version.outputs.VERSION }} \
+            ./artifacts/win-x64/Clueless-${{ steps.version.outputs.VERSION }}-win-x64.exe \
+            --clobber

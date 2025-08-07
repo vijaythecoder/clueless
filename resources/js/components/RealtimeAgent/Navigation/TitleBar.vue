@@ -41,6 +41,9 @@
 
             <!-- Connection Status -->
             <ConnectionStatus />
+            
+            <!-- Recording Indicator Slot -->
+            <slot name="recording-indicator" />
 
             <!-- Divider -->
             <div class="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
@@ -134,6 +137,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
+import { router } from '@inertiajs/vue3';
 import { useRealtimeAgentStore } from '@/stores/realtimeAgent';
 import { useSettingsStore } from '@/stores/settings';
 import CoachSelector from './CoachSelector.vue';
@@ -221,6 +225,10 @@ const toggleMobileMenu = () => {
 
 const handleDashboardClick = () => {
     emit('dashboardClick');
+};
+
+const handleSettingsClick = () => {
+    router.visit('/settings/recording');
 };
 
 const toggleSession = () => {

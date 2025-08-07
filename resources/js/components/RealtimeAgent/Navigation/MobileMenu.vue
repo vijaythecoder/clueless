@@ -115,6 +115,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { router } from '@inertiajs/vue3';
 import { useRealtimeAgentStore } from '@/stores/realtimeAgent';
 import { useSettingsStore } from '@/stores/settings';
 import ConnectionStatus from './ConnectionStatus.vue';
@@ -176,6 +177,11 @@ const toggleOverlay = () => {
 
 const handleDashboardClick = () => {
     emit('dashboardClick');
+    settingsStore.closeAllDropdowns();
+};
+
+const handleSettingsClick = () => {
+    router.visit('/settings/recording');
     settingsStore.closeAllDropdowns();
 };
 

@@ -14,6 +14,10 @@ const sidebarNavItems: NavItem[] = [
         title: 'Appearance',
         href: '/settings/appearance',
     },
+    {
+        title: 'Recording',
+        href: '/settings/recording',
+    },
 ];
 
 const page = usePage();

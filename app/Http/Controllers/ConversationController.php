@@ -282,4 +282,44 @@ class ConversationController extends Controller
         return redirect()->route('conversations.index')
             ->with('message', 'Conversation deleted successfully');
     }
+    
+    /**
+     * Update recording information for a conversation session.
+     */
+    public function updateRecording(ConversationSession $session, Request $request)
+    {
+        // No auth check needed for single-user desktop app
+        
+        $validated = $request->validate([
+            'has_recording' => 'required|boolean',
+            'recording_path' => 'required|string',
+            'recording_duration' => 'required|integer|min:0',
+            'recording_size' => 'required|integer|min:0',
+        ]);
+        
+        // Validate that the recording file actually exists
+        if ($validated['has_recording'] && $validated['recording_path']) {
+            if (!file_exists($validated['recording_path'])) {
+                return response()->json([
+                    'message' => 'Recording file not found at specified path',
+                ], 422);
+            }
+            
+            // Verify file size matches
+            $actualSize = filesize($validated['recording_path']);
+            if ($actualSize !== $validated['recording_size']) {
+                \Log::warning('Recording file size mismatch', [
+                    'session_id' => $session->id,
+                    'expected_size' => $validated['recording_size'],
+                    'actual_size' => $actualSize,
+                ]);
+            }
+        }
+        
+        $session->update($validated);
+        
+        return response()->json([
+            'message' => 'Recording information updated successfully',
+        ]);
+    }
 }
