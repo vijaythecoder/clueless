@@ -110,9 +110,19 @@ jobs:
 
       - name: Build NativePHP application
         env:
+          # Code signing (electron-builder auto-detects these)
+          CSC_LINK: ${{ secrets.NATIVEPHP_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.NATIVEPHP_CERTIFICATE_PASSWORD }}
+          # Notarization (NativePHP)
           NATIVEPHP_APPLE_ID: ${{ secrets.NATIVEPHP_APPLE_ID }}
           NATIVEPHP_APPLE_ID_PASS: ${{ secrets.NATIVEPHP_APPLE_ID_PASS }}
           NATIVEPHP_APPLE_TEAM_ID: ${{ secrets.NATIVEPHP_APPLE_TEAM_ID }}
+          # Alternate names for electron-notarize compatibility
+          APPLE_ID: ${{ secrets.NATIVEPHP_APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.NATIVEPHP_APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.NATIVEPHP_APPLE_ID_PASS }}
+          APPLE_ID_PASSWORD: ${{ secrets.NATIVEPHP_APPLE_ID_PASS }}
+          # Version
           NATIVEPHP_APP_VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
           # Build the app with the correct architecture
