@@ -101,6 +101,8 @@ Route::patch('/conversations/{session}/title', [\App\Http\Controllers\Conversati
     ->name('conversations.title');
 Route::delete('/conversations/{session}', [\App\Http\Controllers\ConversationController::class, 'destroy'])
     ->name('conversations.destroy');
+Route::patch('/conversations/{session}/recording', [\App\Http\Controllers\ConversationController::class, 'updateRecording'])
+    ->name('conversations.recording');
 
 // Variables Page Route
 Route::get('/variables', function () {

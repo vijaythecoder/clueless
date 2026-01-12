@@ -31,6 +31,10 @@ class ConversationSession extends Model
         'total_action_items',
         'ai_summary',
         'user_notes',
+        'has_recording',
+        'recording_path',
+        'recording_duration',
+        'recording_size',
     ];
 
     protected $casts = [
@@ -42,6 +46,9 @@ class ConversationSession extends Model
         'total_topics' => 'integer',
         'total_commitments' => 'integer',
         'total_action_items' => 'integer',
+        'has_recording' => 'boolean',
+        'recording_duration' => 'integer',
+        'recording_size' => 'integer',
     ];
 
     public function user(): BelongsTo

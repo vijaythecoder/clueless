@@ -16,5 +16,9 @@ Route::get('settings/appearance', function () {
     return Inertia::render('settings/Appearance');
 })->name('appearance');
 
+Route::get('settings/recording', function () {
+    return Inertia::render('settings/Recording');
+})->name('recording');
+
 // Redirect settings to API keys (most important setting)
 Route::redirect('settings', '/settings/api-keys');

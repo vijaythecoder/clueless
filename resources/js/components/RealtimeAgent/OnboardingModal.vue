@@ -1,6 +1,6 @@
 <template>
     <Dialog v-model:open="isOpen" @update:open="handleOpenChange">
-        <DialogContent class="max-w-md p-0" :closeable="false">
+        <DialogContent class="max-w-md p-0">
             <!-- Logo and App Name Header -->
             <div class="p-6 pb-0 text-center">
                 <div class="mb-4 flex items-center justify-center">
