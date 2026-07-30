@@ -32,7 +32,6 @@ export async function checkMicrophoneAvailability(): Promise<{ available: boolea
         const devices = await navigator.mediaDevices.enumerateDevices();
         const audioInputs = devices.filter((device) => device.kind === 'audioinput');
 
-
         if (audioInputs.length === 0) {
             return { available: false, message: 'No microphone devices found' };
         }

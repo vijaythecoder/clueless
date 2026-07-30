@@ -53,18 +53,20 @@ function mockApiKey(): string
 }
 
 /**
- * Mock a successful OpenAI ephemeral key response
+ * Mock a successful OpenAI GA Realtime client secret response
  */
-function mockEphemeralKeyResponse(): array
+function mockRealtimeClientSecretResponse(array $overrides = []): array
 {
-    return [
-        'id' => 'sess_'.uniqid(),
-        'object' => 'realtime.session',
-        'model' => 'gpt-4o-mini-realtime-preview-2024-12-17',
-        'client_secret' => [
-            'value' => 'ek_'.bin2hex(random_bytes(32)),
-            'expires_at' => time() + 7200, // 2 hours from now
+    return array_replace_recursive([
+        'value' => 'ek_'.bin2hex(random_bytes(32)),
+        'expires_at' => time() + 600,
+        'session' => [
+            'type' => 'realtime',
+            'object' => 'realtime.session',
+            'id' => 'sess_'.uniqid(),
+            'model' => 'gpt-realtime-2.1',
+            'output_modalities' => ['text'],
+            'tools' => [],
         ],
-        'tools' => [],
-    ];
+    ], $overrides);
 }

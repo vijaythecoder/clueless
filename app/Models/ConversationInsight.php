@@ -10,12 +10,18 @@ class ConversationInsight extends Model
     protected $fillable = [
         'session_id',
         'insight_type',
+        'tool_call_id',
+        'card_type',
+        'approval_status',
         'data',
+        'metadata',
         'captured_at',
+        'semantic_key',
     ];
 
     protected $casts = [
         'data' => 'array',
+        'metadata' => 'array',
         'captured_at' => 'datetime',
     ];
 

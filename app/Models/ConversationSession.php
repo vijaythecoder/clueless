@@ -20,6 +20,7 @@ class ConversationSession extends Model
         'ended_at',
         'duration_seconds',
         'template_used',
+        'openai_session_ids',
         'final_intent',
         'final_buying_stage',
         'final_engagement_level',
@@ -31,17 +32,20 @@ class ConversationSession extends Model
         'total_action_items',
         'ai_summary',
         'user_notes',
+        'metadata',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
+        'openai_session_ids' => 'array',
         'final_engagement_level' => 'integer',
         'total_transcripts' => 'integer',
         'total_insights' => 'integer',
         'total_topics' => 'integer',
         'total_commitments' => 'integer',
         'total_action_items' => 'integer',
+        'metadata' => 'array',
     ];
 
     public function user(): BelongsTo
@@ -51,12 +55,21 @@ class ConversationSession extends Model
 
     public function transcripts(): HasMany
     {
-        return $this->hasMany(ConversationTranscript::class, 'session_id')->orderBy('order_index');
+        return $this->hasMany(ConversationTranscript::class, 'session_id')
+            ->orderBy('order_index')
+            ->orderBy('id');
+    }
+
+    public function captures(): HasMany
+    {
+        return $this->hasMany(MeetingCaptureSession::class);
     }
 
     public function insights(): HasMany
     {
-        return $this->hasMany(ConversationInsight::class, 'session_id')->orderBy('captured_at');
+        return $this->hasMany(ConversationInsight::class, 'session_id')
+            ->orderBy('captured_at')
+            ->orderBy('id');
     }
 
     public function topics(): HasMany

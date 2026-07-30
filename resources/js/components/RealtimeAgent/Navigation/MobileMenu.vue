@@ -15,7 +15,7 @@
                     type="button"
                 >
                     <span>
-                        Coach: 
+                        Coach:
                         <span class="font-medium text-gray-800 dark:text-gray-200">
                             {{ selectedTemplate?.name || 'Select' }}
                         </span>
@@ -90,11 +90,7 @@
                 v-if="isOverlaySupported"
                 @click="toggleOverlay"
                 class="flex w-full items-center justify-between text-xs"
-                :class="[
-                    isOverlayMode 
-                        ? 'text-blue-600 dark:text-blue-400' 
-                        : 'text-gray-600 dark:text-gray-400'
-                ]"
+                :class="[isOverlayMode ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400']"
             >
                 <span>Overlay Mode</span>
                 <span class="font-medium">{{ isOverlayMode ? 'ON' : 'OFF' }}</span>
@@ -114,9 +110,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import { useRealtimeAgentStore } from '@/stores/realtimeAgent';
 import { useSettingsStore } from '@/stores/settings';
+import { computed } from 'vue';
 import ConnectionStatus from './ConnectionStatus.vue';
 
 // Emit events
@@ -136,7 +132,7 @@ const selectedTemplate = computed(() => realtimeStore.selectedTemplate);
 const templates = computed(() => realtimeStore.templates);
 const searchQuery = computed({
     get: () => settingsStore.templateSearchQuery,
-    set: (value) => settingsStore.setTemplateSearchQuery(value)
+    set: (value) => settingsStore.setTemplateSearchQuery(value),
 });
 const isProtectionEnabled = computed(() => settingsStore.isProtectionEnabled);
 const isProtectionSupported = computed(() => settingsStore.isProtectionSupported);
@@ -146,11 +142,9 @@ const isOverlaySupported = computed(() => settingsStore.isOverlaySupported);
 
 const filteredTemplates = computed(() => {
     if (!searchQuery.value) return templates.value;
-    
+
     const query = searchQuery.value.toLowerCase();
-    return templates.value.filter(template => 
-        template.name.toLowerCase().includes(query)
-    );
+    return templates.value.filter((template) => template.name.toLowerCase().includes(query));
 });
 
 // Methods
@@ -179,22 +173,21 @@ const handleDashboardClick = () => {
     settingsStore.closeAllDropdowns();
 };
 
-
 const getIconEmoji = (icon?: string) => {
     if (!icon) return '📋';
-    
+
     const iconMap: Record<string, string> = {
-        'discovery': '🔍',
-        'demo': '🎯',
-        'negotiation': '💰',
-        'support': '🛟',
-        'onboarding': '🚀',
-        'feedback': '💭',
-        'renewal': '🔄',
-        'upsell': '📈',
-        'default': '📋'
+        discovery: '🔍',
+        demo: '🎯',
+        negotiation: '💰',
+        support: '🛟',
+        onboarding: '🚀',
+        feedback: '💭',
+        renewal: '🔄',
+        upsell: '📈',
+        default: '📋',
     };
-    
+
     return iconMap[icon] || iconMap.default;
 };
 </script>

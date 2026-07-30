@@ -26,10 +26,7 @@
             </div>
 
             <div class="mt-6 flex gap-3">
-                <button
-                    @click="startWithInfo"
-                    class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-                >
+                <button @click="startWithInfo" class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700">
                     Start Call
                 </button>
                 <button
@@ -44,8 +41,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import { useRealtimeAgentStore } from '@/stores/realtimeAgent';
+import { computed } from 'vue';
 
 // Emit events
 const emit = defineEmits<{
@@ -60,24 +57,26 @@ const realtimeStore = useRealtimeAgentStore();
 const showModal = computed(() => realtimeStore.showCustomerModal);
 const customerName = computed({
     get: () => realtimeStore.customerInfo.name,
-    set: (value) => realtimeStore.setCustomerInfo({ 
-        ...realtimeStore.customerInfo, 
-        name: value 
-    })
+    set: (value) =>
+        realtimeStore.setCustomerInfo({
+            ...realtimeStore.customerInfo,
+            name: value,
+        }),
 });
 const customerCompany = computed({
     get: () => realtimeStore.customerInfo.company,
-    set: (value) => realtimeStore.setCustomerInfo({ 
-        ...realtimeStore.customerInfo, 
-        company: value 
-    })
+    set: (value) =>
+        realtimeStore.setCustomerInfo({
+            ...realtimeStore.customerInfo,
+            company: value,
+        }),
 });
 
 // Methods
 const startWithInfo = () => {
     emit('startWithInfo', {
         name: customerName.value,
-        company: customerCompany.value
+        company: customerCompany.value,
     });
     realtimeStore.setShowCustomerModal(false);
 };

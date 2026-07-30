@@ -13,8 +13,7 @@ return [
      * usually in the form of a reverse domain name.
      * For example: com.nativephp.app
      */
-    '
-    ' => env('NATIVEPHP_APP_ID', 'com.nativephp.app'),
+    'app_id' => env('NATIVEPHP_APP_ID', 'com.clueless.app'),
 
     /**
      * If your application allows deep linking, you can specify the scheme
@@ -83,8 +82,9 @@ return [
         'content',
         'node_modules',
         '*/tests',
+        'build/native',
+        'extras/macos-audio-capture',
         'public/hot', // Remove Vite hot reload file in production
-        // Don't exclude the build directory as it contains our native executable
     ],
 
     /**
@@ -147,6 +147,12 @@ return [
             'timeout' => 60,
             'sleep' => 3,
         ],
+        'recall-analysis' => [
+            'queues' => ['recall-analysis'],
+            'memory_limit' => 128,
+            'timeout' => 60,
+            'sleep' => 1,
+        ],
     ],
 
     /**
@@ -154,6 +160,7 @@ return [
      */
     'prebuild' => [
         './build-swift-audio.sh',
+        'node scripts/apply-nativephp-electron-patch.mjs',
         'npm install --omit=dev', // Install production dependencies
         'npm run build', // Build frontend assets
         'php artisan optimize',

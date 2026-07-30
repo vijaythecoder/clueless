@@ -23,7 +23,7 @@ jobs:
         with:
           php-version: 8.4
           tools: composer:v2
-          coverage: xdebug
+          coverage: none
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -31,11 +31,7 @@ jobs:
           node-version: '22'
 
       - name: Install Node Dependencies
-        run: |
-          # Workaround for npm optional dependencies bug
-          # https://github.com/npm/cli/issues/4828
-          rm -rf node_modules package-lock.json
-          npm install --no-optional
+        run: npm ci
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -48,6 +44,21 @@ jobs:
 
       - name: Publish Ziggy Configuration
         run: php artisan ziggy:generate
+
+      - name: Validate Both SQLite Schemas
+        run: |
+          touch database/database.sqlite database/nativephp.sqlite
+          php artisan migrate --force
+          php artisan migrate --database=nativephp --force
+
+      - name: Typecheck Frontend
+        run: npm run typecheck
+
+      - name: Frontend Tests
+        run: npm run test:frontend
+
+      - name: Native Electron Tests
+        run: npm run test:native
 
       - name: Build Assets
         run: npm run build

@@ -687,7 +687,7 @@ Output priorities:
             Template::firstOrCreate(
                 [
                     'name' => $template['name'],
-                    'is_system' => true
+                    'is_system' => true,
                 ],
                 $template
             );

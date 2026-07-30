@@ -1,33 +1,47 @@
 <?php
 
+use App\Models\SecureSetting;
 use App\Services\ApiKeyService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Tests\Traits\MocksOpenAI;
 
-uses(MocksOpenAI::class);
+uses(MocksOpenAI::class, RefreshDatabase::class);
 
 beforeEach(function () {
     $this->service = new ApiKeyService;
-    Cache::flush(); // Clear cache before each test
+    Config::set('openai.api_key', null);
+    Cache::flush();
 });
 
-test('getApiKey returns cached key when available', function () {
-    $cachedKey = mockApiKey();
-    Cache::put('app_openai_api_key', $cachedKey);
+test('getApiKey returns stored secure setting when available', function () {
+    $storedKey = mockApiKey();
+    $this->service->setApiKey($storedKey);
 
     $result = $this->service->getApiKey();
 
-    expect($result)->toBe($cachedKey);
+    expect($result)->toBe($storedKey);
 });
 
-test('getApiKey falls back to config when no cached key', function () {
+test('getApiKey falls back to config when no stored key exists', function () {
     $configKey = 'sk-config-key';
     Config::set('openai.api_key', $configKey);
 
     $result = $this->service->getApiKey();
 
     expect($result)->toBe($configKey);
+});
+
+test('getApiKey migrates and removes a legacy plaintext cache key', function () {
+    $legacyKey = mockApiKey();
+    Cache::forever('app_openai_api_key', $legacyKey);
+
+    expect($this->service->getApiKey())->toBe($legacyKey)
+        ->and(Cache::has('app_openai_api_key'))->toBeFalse()
+        ->and(SecureSetting::where('key', SecureSetting::OPENAI_API_KEY)->value('value'))->toBe($legacyKey)
+        ->and(DB::table('secure_settings')->value('value'))->not->toBe($legacyKey);
 });
 
 test('getApiKey returns null when no key available', function () {
@@ -38,29 +52,50 @@ test('getApiKey returns null when no key available', function () {
     expect($result)->toBeNull();
 });
 
-test('setApiKey stores key in cache permanently', function () {
+test('setApiKey stores one encrypted database value', function () {
     $apiKey = mockApiKey();
 
     $this->service->setApiKey($apiKey);
+    $this->service->setApiKey($apiKey.'-replacement');
 
-    expect(Cache::get('app_openai_api_key'))->toBe($apiKey);
+    $rawValue = DB::table('secure_settings')
+        ->where('key', SecureSetting::OPENAI_API_KEY)
+        ->value('value');
+
+    expect($rawValue)
+        ->not->toBe($apiKey.'-replacement')
+        ->and($rawValue)->not->toContain('replacement')
+        ->and(SecureSetting::where('key', SecureSetting::OPENAI_API_KEY)->value('value'))
+        ->toBe($apiKey.'-replacement')
+        ->and(SecureSetting::where('key', SecureSetting::OPENAI_API_KEY)->count())
+        ->toBe(1);
 });
 
-test('removeApiKey removes key from cache', function () {
+test('removeApiKey removes stored key', function () {
     $apiKey = mockApiKey();
-    Cache::put('app_openai_api_key', $apiKey);
+    $this->service->setApiKey($apiKey);
 
     $this->service->removeApiKey();
 
-    expect(Cache::has('app_openai_api_key'))->toBeFalse();
+    expect(SecureSetting::where('key', SecureSetting::OPENAI_API_KEY)->exists())->toBeFalse();
 });
 
-test('hasApiKey returns true when cached key exists', function () {
-    Cache::put('app_openai_api_key', mockApiKey());
+test('hasApiKey returns true when stored key exists', function () {
+    $this->service->setApiKey(mockApiKey());
 
     $result = $this->service->hasApiKey();
 
     expect($result)->toBeTrue();
+});
+
+test('hasStoredApiKey only reports database-backed keys', function () {
+    Config::set('openai.api_key', 'sk-config-key');
+
+    expect($this->service->hasStoredApiKey())->toBeFalse();
+
+    $this->service->setApiKey(mockApiKey());
+
+    expect($this->service->hasStoredApiKey())->toBeTrue();
 });
 
 test('hasApiKey returns true when config key exists', function () {
@@ -73,15 +108,6 @@ test('hasApiKey returns true when config key exists', function () {
 
 test('hasApiKey returns false when no key exists', function () {
     Config::set('openai.api_key', null);
-
-    $result = $this->service->hasApiKey();
-
-    expect($result)->toBeFalse();
-});
-
-test('hasApiKey returns false for empty string key', function () {
-    Cache::put('app_openai_api_key', '');
-    Config::set('openai.api_key', null); // Ensure no fallback
 
     $result = $this->service->hasApiKey();
 
@@ -112,14 +138,14 @@ test('validateApiKey returns false on connection error', function () {
     expect($result)->toBeFalse();
 });
 
-test('priority is cached key over config key', function () {
-    $cachedKey = 'sk-cached-key';
+test('priority is stored key over config key', function () {
+    $storedKey = 'sk-stored-key';
     $configKey = 'sk-config-key';
 
-    Cache::put('app_openai_api_key', $cachedKey);
+    $this->service->setApiKey($storedKey);
     Config::set('openai.api_key', $configKey);
 
     $result = $this->service->getApiKey();
 
-    expect($result)->toBe($cachedKey);
+    expect($result)->toBe($storedKey);
 });

@@ -1,0 +1,11 @@
+{
+  "event": "bot.status_change",
+  "data": {
+    "bot_id": "bot_test_123",
+    "status": {
+      "code": "bot.in_waiting_room",
+      "message": "Waiting for admission"
+    },
+    "timestamp": "2026-07-27T12:00:02Z"
+  }
+}

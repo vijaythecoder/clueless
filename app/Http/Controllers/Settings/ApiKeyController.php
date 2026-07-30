@@ -25,7 +25,7 @@ class ApiKeyController extends Controller
     public function edit(Request $request): Response
     {
         $hasApiKey = $this->apiKeyService->hasApiKey();
-        $isUsingEnvKey = ! cache()->has('app_openai_api_key') && $hasApiKey;
+        $isUsingEnvKey = ! $this->apiKeyService->hasStoredApiKey() && $hasApiKey;
 
         return Inertia::render('settings/ApiKeys', [
             'hasApiKey' => $hasApiKey,

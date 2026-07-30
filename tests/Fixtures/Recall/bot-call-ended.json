@@ -1,0 +1,11 @@
+{
+  "event": "bot.call_ended",
+  "data": {
+    "bot": {"id": "bot_test_123"},
+    "data": {
+      "code": "call_ended",
+      "sub_code": null,
+      "updated_at": "2026-07-27T12:05:02Z"
+    }
+  }
+}

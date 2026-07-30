@@ -24,7 +24,7 @@ export class AudioHealthMonitor {
         processRunning: false,
         recommendations: [],
     };
-    private updateInterval: NodeJS.Timeout | null = null;
+    private updateInterval: ReturnType<typeof setInterval> | null = null;
     private listeners: Array<(status: AudioHealthStatus) => void> = [];
 
     constructor() {
