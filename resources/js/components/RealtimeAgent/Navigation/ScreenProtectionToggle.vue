@@ -33,9 +33,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
-import { useSettingsStore } from '@/stores/settings';
 import { useScreenProtection } from '@/composables/useScreenProtection';
+import { useSettingsStore } from '@/stores/settings';
+import { computed, watch } from 'vue';
 
 // Store
 const settingsStore = useSettingsStore();

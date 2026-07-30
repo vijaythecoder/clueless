@@ -1,0 +1,31 @@
+{
+  "event": "transcript.partial_data",
+  "data": {
+    "bot": {"id": "bot_test_123"},
+    "transcript": {"id": "artifact_partial_123"},
+    "recording": {"id": "recording_test_123"},
+    "realtime_endpoint": {"id": "endpoint_test_123"},
+    "data": {
+      "participant": {
+        "id": 42,
+        "name": "Ada Lovelace",
+        "is_host": false,
+        "platform": "microsoft_teams",
+        "extra_data": {}
+      },
+      "words": [
+        {
+          "text": " Partial",
+          "start_timestamp": {"relative": 1.2},
+          "end_timestamp": {"relative": 1.8}
+        },
+        {
+          "text": " text ",
+          "start_timestamp": {"relative": 1.81},
+          "end_timestamp": null
+        }
+      ],
+      "language_code": "en"
+    }
+  }
+}

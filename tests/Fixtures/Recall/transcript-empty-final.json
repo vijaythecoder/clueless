@@ -1,0 +1,27 @@
+{
+  "event": "transcript.data",
+  "data": {
+    "bot": {"id": "bot_test_123"},
+    "transcript": {"id": "artifact_empty_123"},
+    "recording": {"id": "recording_test_123"},
+    "realtime_endpoint": {"id": "endpoint_test_123"},
+    "data": {
+      "participant": {
+        "id": 42,
+        "name": null,
+        "email": null,
+        "is_host": false,
+        "platform": "microsoft_teams",
+        "extra_data": {}
+      },
+      "words": [
+        {
+          "text": "   ",
+          "start_timestamp": {"relative": 4.2},
+          "end_timestamp": {"relative": 4.3}
+        }
+      ],
+      "language_code": "en"
+    }
+  }
+}

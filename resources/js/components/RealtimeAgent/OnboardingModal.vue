@@ -1,6 +1,6 @@
 <template>
     <Dialog v-model:open="isOpen" @update:open="handleOpenChange">
-        <DialogContent class="max-w-md p-0" :closeable="false">
+        <DialogContent class="max-w-md p-0" :show-close="false">
             <!-- Logo and App Name Header -->
             <div class="p-6 pb-0 text-center">
                 <div class="mb-4 flex items-center justify-center">
@@ -17,7 +17,7 @@
                 </div>
                 <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Welcome to Clueless</h1>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Let's get you set up in just a few steps</p>
-                
+
                 <!-- Progress Indicator -->
                 <div class="mt-4 flex items-center justify-center space-x-2">
                     <div
@@ -53,12 +53,7 @@
                                     class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                                 >
                                     <svg v-if="!showApiKey" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                        />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         <path
                                             stroke-linecap="round"
                                             stroke-linejoin="round"
@@ -87,9 +82,7 @@
                                 <p v-if="apiKeyError" class="mt-1.5 text-sm text-red-600 dark:text-red-400">
                                     {{ apiKeyError }}
                                 </p>
-                                <p v-else-if="apiKeyValid" class="mt-1.5 text-sm text-green-600 dark:text-green-400">
-                                    ✓ Valid API key format
-                                </p>
+                                <p v-else-if="apiKeyValid" class="mt-1.5 text-sm text-green-600 dark:text-green-400">✓ Valid API key format</p>
                             </Transition>
                         </div>
 
@@ -136,7 +129,7 @@
                 <!-- Step 2: Permissions -->
                 <div v-else-if="currentStep === 2">
                     <h2 class="mb-4 text-lg font-medium text-gray-900 dark:text-white">Grant Permissions</h2>
-                    
+
                     <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
                         Clueless needs access to your microphone and screen to provide real-time transcription and coaching.
                     </p>
@@ -147,7 +140,11 @@
                             <div class="flex items-center gap-3">
                                 <div class="rounded-lg bg-white p-2 dark:bg-gray-800">
                                     <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd" />
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
+                                            clip-rule="evenodd"
+                                        />
                                     </svg>
                                 </div>
                                 <div>
@@ -160,18 +157,22 @@
                                 :disabled="micPermissionLoading"
                                 class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
                                 :class="[
-                                    micPermissionStatus === 'authorized' 
-                                        ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30' 
+                                    micPermissionStatus === 'authorized'
+                                        ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30'
                                         : micPermissionStatus === 'denied'
-                                        ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
-                                        : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200',
-                                    { 'opacity-50 cursor-not-allowed': micPermissionLoading }
+                                          ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
+                                          : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200',
+                                    { 'cursor-not-allowed opacity-50': micPermissionLoading },
                                 ]"
                             >
                                 <span v-if="micPermissionLoading" class="flex items-center">
                                     <svg class="mr-1.5 h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
                                     </svg>
                                     Checking...
                                 </span>
@@ -184,7 +185,11 @@
                             <div class="flex items-center gap-3">
                                 <div class="rounded-lg bg-white p-2 dark:bg-gray-800">
                                     <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 4a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm0 3a1 1 0 011-1h4a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M3 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 4a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm0 3a1 1 0 011-1h4a1 1 0 110 2H6a1 1 0 01-1-1z"
+                                            clip-rule="evenodd"
+                                        />
                                     </svg>
                                 </div>
                                 <div>
@@ -197,18 +202,22 @@
                                 :disabled="screenPermissionLoading"
                                 class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
                                 :class="[
-                                    screenPermissionStatus === 'authorized' 
-                                        ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30' 
+                                    screenPermissionStatus === 'authorized'
+                                        ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30'
                                         : screenPermissionStatus === 'denied'
-                                        ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
-                                        : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200',
-                                    { 'opacity-50 cursor-not-allowed': screenPermissionLoading }
+                                          ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
+                                          : 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200',
+                                    { 'cursor-not-allowed opacity-50': screenPermissionLoading },
                                 ]"
                             >
                                 <span v-if="screenPermissionLoading" class="flex items-center">
                                     <svg class="mr-1.5 h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
                                     </svg>
                                     Checking...
                                 </span>
@@ -296,12 +305,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import axios from 'axios';
-import {
-    Dialog,
-    DialogContent,
-} from '@/components/ui/dialog';
+import { computed, ref, watch } from 'vue';
 
 // Props and emits
 const props = defineProps<{
@@ -310,13 +316,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     'update:open': [value: boolean];
-    'complete': [];
+    complete: [];
 }>();
 
 // Model for dialog open state
 const isOpen = computed({
     get: () => props.open,
-    set: (value) => emit('update:open', value)
+    set: (value) => emit('update:open', value),
 });
 
 // Step state
@@ -329,29 +335,39 @@ const isValidating = ref(false);
 const hasStarred = ref(false);
 
 // Permission states
-const micPermissionStatus = ref<string>('not determined');
+const micPermissionStatus = ref<NonNullable<NativePermissionResult['status']>>('not-determined');
 const micPermissionLoading = ref<boolean>(false);
-const screenPermissionStatus = ref<string>('not determined');
+const screenPermissionStatus = ref<NonNullable<NativePermissionResult['status']>>('not-determined');
 const screenPermissionLoading = ref<boolean>(false);
 
 // Permission button texts
 const micPermissionButtonText = computed(() => {
     switch (micPermissionStatus.value) {
-        case 'authorized': return '✓ Granted';
-        case 'denied': return 'Open Settings';
-        case 'not determined': return 'Grant Access';
-        case 'restricted': return 'Restricted';
-        default: return 'Check Status';
+        case 'authorized':
+            return '✓ Granted';
+        case 'denied':
+            return 'Open Settings';
+        case 'not-determined':
+            return 'Grant Access';
+        case 'restricted':
+            return 'Restricted';
+        default:
+            return 'Check Status';
     }
 });
 
 const screenPermissionButtonText = computed(() => {
     switch (screenPermissionStatus.value) {
-        case 'authorized': return '✓ Granted';
-        case 'denied': return 'Open Settings';
-        case 'not determined': return 'Grant Access';
-        case 'restricted': return 'Restricted';
-        default: return 'Check Status';
+        case 'authorized':
+            return '✓ Granted';
+        case 'denied':
+            return 'Open Settings';
+        case 'not-determined':
+            return 'Grant Access';
+        case 'restricted':
+            return 'Restricted';
+        default:
+            return 'Check Status';
     }
 });
 
@@ -454,10 +470,10 @@ const openOpenAI = async () => {
 // Permission methods
 const checkMicrophonePermission = async () => {
     try {
-        if ((window as any).macPermissions) {
-            const result = await (window as any).macPermissions.checkPermission('microphone');
+        if (window.macPermissions) {
+            const result = await window.macPermissions.checkPermission('microphone');
             if (result.success) {
-                micPermissionStatus.value = result.status || 'not determined';
+                micPermissionStatus.value = result.status || 'not-determined';
             }
         }
     } catch (error) {
@@ -467,23 +483,22 @@ const checkMicrophonePermission = async () => {
 
 const requestMicrophonePermission = async () => {
     if (micPermissionLoading.value) return;
-    
+
     try {
         micPermissionLoading.value = true;
-        
-        if ((window as any).macPermissions) {
-            const result = await (window as any).macPermissions.requestPermission('microphone');
-            if (result.success) {
-                micPermissionStatus.value = result.status || 'not determined';
-                console.log('Microphone permission result:', result.status);
-            } else {
-                console.error('Failed to request microphone permission:', result.error);
-            }
-        } else {
-            console.warn('macPermissions API not available');
+
+        if ((micPermissionStatus.value === 'denied' || micPermissionStatus.value === 'restricted') && window.macPermissions) {
+            await window.macPermissions.openSettings('microphone');
+            return;
         }
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+        micPermissionStatus.value = 'authorized';
+        console.log('Microphone permission result: authorized');
     } catch (error) {
         console.error('Error requesting microphone permission:', error);
+        micPermissionStatus.value = error instanceof DOMException && error.name === 'NotAllowedError' ? 'denied' : 'not-determined';
     } finally {
         micPermissionLoading.value = false;
     }
@@ -491,10 +506,10 @@ const requestMicrophonePermission = async () => {
 
 const checkScreenPermission = async () => {
     try {
-        if ((window as any).macPermissions) {
-            const result = await (window as any).macPermissions.checkPermission('screen');
+        if (window.macPermissions) {
+            const result = await window.macPermissions.checkPermission('screen');
             if (result.success) {
-                screenPermissionStatus.value = result.status || 'not determined';
+                screenPermissionStatus.value = result.status || 'not-determined';
             }
         }
     } catch (error) {
@@ -504,23 +519,28 @@ const checkScreenPermission = async () => {
 
 const requestScreenPermission = async () => {
     if (screenPermissionLoading.value) return;
-    
+
     try {
         screenPermissionLoading.value = true;
-        
-        if ((window as any).macPermissions) {
-            const result = await (window as any).macPermissions.requestPermission('screen');
-            if (result.success) {
-                screenPermissionStatus.value = result.status || 'not determined';
-                console.log('Screen capture permission result:', result.status);
-            } else {
-                console.error('Failed to request screen capture permission:', result.error);
-            }
-        } else {
-            console.warn('macPermissions API not available');
+
+        if ((screenPermissionStatus.value === 'denied' || screenPermissionStatus.value === 'restricted') && window.macPermissions) {
+            await window.macPermissions.openSettings('screen');
+            return;
         }
+
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        stream.getTracks().forEach((track) => track.stop());
+        screenPermissionStatus.value = 'authorized';
+        console.log('Screen capture permission result: authorized');
     } catch (error) {
         console.error('Error requesting screen capture permission:', error);
+        if (error instanceof DOMException && error.name === 'NotSupportedError' && window.macPermissions) {
+            const result = await window.macPermissions.requestPermission('screen');
+            screenPermissionStatus.value = result.status || 'not-determined';
+            console.log('Screen capture permission fallback result:', screenPermissionStatus.value);
+        } else {
+            screenPermissionStatus.value = error instanceof DOMException && error.name === 'NotAllowedError' ? 'denied' : 'not-determined';
+        }
     } finally {
         screenPermissionLoading.value = false;
     }
@@ -545,10 +565,10 @@ const completeOnboarding = () => {
     // Mark onboarding as complete
     localStorage.setItem('onboarding_completed', 'true');
     localStorage.setItem('onboarding_completed_at', new Date().toISOString());
-    
+
     // Emit complete event
     emit('complete');
-    
+
     // Close modal
     emit('update:open', false);
 };

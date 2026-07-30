@@ -2,55 +2,77 @@
 
 namespace App\Services;
 
+use App\Models\SecureSetting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class ApiKeyService
 {
-    private const CACHE_KEY = 'app_openai_api_key';
+    private const LEGACY_CACHE_KEY = 'app_openai_api_key';
 
-    /**
-     * Get the OpenAI API key from cache or environment
-     */
     public function getApiKey(): ?string
     {
-        // Check cache first (stored via settings page)
-        $cachedKey = Cache::get(self::CACHE_KEY);
-        if ($cachedKey) {
-            return $cachedKey;
+        $storedKey = SecureSetting::query()
+            ->where('key', SecureSetting::OPENAI_API_KEY)
+            ->value('value');
+
+        if ($storedKey) {
+            return $storedKey;
         }
 
-        // Fall back to environment variable
+        $legacyKey = Cache::get(self::LEGACY_CACHE_KEY);
+
+        if (is_string($legacyKey) && $legacyKey !== '') {
+            $this->persistApiKey($legacyKey);
+
+            $migratedKey = SecureSetting::query()
+                ->where('key', SecureSetting::OPENAI_API_KEY)
+                ->value('value');
+
+            if ($migratedKey === $legacyKey) {
+                Cache::forget(self::LEGACY_CACHE_KEY);
+
+                return $migratedKey;
+            }
+        }
+
         return config('openai.api_key');
     }
 
-    /**
-     * Store the API key in cache
-     */
     public function setApiKey(string $apiKey): void
     {
-        Cache::forever(self::CACHE_KEY, $apiKey);
+        $this->persistApiKey($apiKey);
+        Cache::forget(self::LEGACY_CACHE_KEY);
     }
 
-    /**
-     * Remove the stored API key
-     */
+    private function persistApiKey(string $apiKey): void
+    {
+        SecureSetting::updateOrCreate(
+            ['key' => SecureSetting::OPENAI_API_KEY],
+            ['value' => $apiKey],
+        );
+    }
+
     public function removeApiKey(): void
     {
-        Cache::forget(self::CACHE_KEY);
+        SecureSetting::query()
+            ->where('key', SecureSetting::OPENAI_API_KEY)
+            ->delete();
+        Cache::forget(self::LEGACY_CACHE_KEY);
     }
 
-    /**
-     * Check if an API key is available
-     */
     public function hasApiKey(): bool
     {
         return ! empty($this->getApiKey());
     }
 
-    /**
-     * Validate an API key with OpenAI
-     */
+    public function hasStoredApiKey(): bool
+    {
+        return SecureSetting::query()
+            ->where('key', SecureSetting::OPENAI_API_KEY)
+            ->exists();
+    }
+
     public function validateApiKey(string $apiKey): bool
     {
         try {

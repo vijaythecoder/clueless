@@ -1,0 +1,24 @@
+{
+  "event": "participant_events.leave",
+  "data": {
+    "bot": {"id": "bot_test_123"},
+    "recording": {"id": "recording_test_123"},
+    "participant_events": {"id": "participant_events_test_123"},
+    "realtime_endpoint": {"id": "endpoint_test_123"},
+    "data": {
+      "participant": {
+        "id": 42,
+        "name": "Ada Lovelace",
+        "email": null,
+        "is_host": false,
+        "platform": "microsoft_teams",
+        "extra_data": {}
+      },
+      "timestamp": {
+        "absolute": "2026-07-27T12:03:00Z",
+        "relative": 180.0
+      },
+      "data": null
+    }
+  }
+}

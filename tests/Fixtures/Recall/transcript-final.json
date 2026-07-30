@@ -1,0 +1,37 @@
+{
+  "event": "transcript.data",
+  "data": {
+    "bot": {"id": "bot_test_123"},
+    "transcript": {"id": "artifact_final_123"},
+    "recording": {"id": "recording_test_123"},
+    "realtime_endpoint": {"id": "endpoint_test_123"},
+    "data": {
+      "participant": {
+        "id": 42,
+        "name": "Ada Lovelace",
+        "email": "ada@example.test",
+        "is_host": false,
+        "platform": "microsoft_teams",
+        "extra_data": {"discard": "this"}
+      },
+      "words": [
+        {
+          "text": "  Final ",
+          "start_timestamp": {"relative": 1.2},
+          "end_timestamp": {"relative": 1.8}
+        },
+        {
+          "text": " transcript",
+          "start_timestamp": {"relative": 1.81},
+          "end_timestamp": {"relative": 2.86}
+        },
+        {
+          "text": " text ",
+          "start_timestamp": {"relative": 2.87},
+          "end_timestamp": {"relative": 3.1}
+        }
+      ],
+      "language_code": "en"
+    }
+  }
+}

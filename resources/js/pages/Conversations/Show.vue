@@ -3,6 +3,7 @@ import BaseCard from '@/components/design/BaseCard.vue';
 import PageContainer from '@/components/design/PageContainer.vue';
 import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { groupHistoryInsights } from '@/pages/Conversations/historyInsights';
 import type { BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -31,32 +32,72 @@ interface ConversationSession {
     user_notes: string | null;
 }
 
+interface Capture {
+    provider: 'local' | 'recall';
+    status: string;
+    failure_code: string | null;
+    failure_message: string | null;
+}
+
 interface Transcript {
     id: number;
     speaker: string;
     speaker_label: string;
+    participant_display_name: string | null;
+    sales_role: 'salesperson' | 'customer' | 'unknown' | 'bot' | 'system';
+    is_you: boolean;
     text: string;
     spoken_at: string;
+    order_index: number;
     group_id: string | null;
     system_category: string | null;
+    source_stream: string | null;
+    status: 'partial' | 'final';
+    provider: 'local' | 'recall' | null;
+    provider_item_id: string | null;
+    started_offset_ms: number | null;
+    ended_offset_ms: number | null;
 }
 
 interface Insight {
     id: number;
     insight_type: string;
-    data: any;
+    card_type: string | null;
+    data: Record<string, any>;
     captured_at: string;
+    analysis_delivery_id: number | null;
+    evidence_item_ids: string[];
+}
+
+interface Paginator<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    total: number;
+    prev_page_url: string | null;
+    next_page_url: string | null;
 }
 
 const props = defineProps<{
     session: ConversationSession;
-    transcripts: Transcript[];
-    insights: Record<string, Insight[]>;
+    capture: Capture | null;
+    transcripts: Paginator<Transcript>;
+    insights: Paginator<Insight>;
 }>();
 
 const userNotes = ref(props.session.user_notes || '');
 
-const groupedInsights = computed(() => props.insights);
+const transcriptItems = computed(() => props.transcripts.data);
+const groupedInsights = computed(() => groupHistoryInsights(props.insights.data));
+
+const visitPage = (url: string | null) => {
+    if (!url) return;
+    router.visit(url, {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    });
+};
 
 // Define formatting functions first
 const formatDate = (dateString: string) => {
@@ -132,6 +173,8 @@ const getInsightColor = (type: string) => {
     }
 };
 
+const transcriptRole = (transcript: Transcript) => transcript.sales_role || transcript.speaker;
+
 const saveNotes = async () => {
     try {
         await axios.patch(`/conversations/${props.session.id}/notes`, {
@@ -171,7 +214,12 @@ const deleteConversation = async () => {
                         <span v-if="session.customer_company">{{ session.customer_company }}</span>
                         <span>{{ formatDuration(session.duration_seconds) }}</span>
                         <span>{{ formatDateTime(session.started_at) }}</span>
+                        <span v-if="capture" class="capitalize"> {{ capture.provider }} · {{ capture.status.replace(/_/g, ' ') }} </span>
                     </div>
+                    <p v-if="capture?.failure_message" class="mt-2 text-sm text-red-700 dark:text-red-400">
+                        {{ capture.failure_message }}
+                        <span v-if="capture.failure_code" class="ml-1 font-mono text-xs">({{ capture.failure_code }})</span>
+                    </p>
                 </div>
                 <Button variant="destructive" size="sm" @click="deleteConversation"> Delete </Button>
             </div>
@@ -263,38 +311,41 @@ const deleteConversation = async () => {
                     <BaseCard class="flex h-full flex-col">
                         <div class="mb-3 flex flex-shrink-0 items-center justify-between">
                             <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Transcript</h2>
-                            <span class="text-xs text-gray-500 dark:text-gray-400"> {{ transcripts.length }} messages </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400"> {{ transcripts.total }} messages </span>
                         </div>
 
-                        <div v-if="transcripts.length === 0" class="flex flex-1 items-center justify-center">
+                        <div v-if="transcriptItems.length === 0" class="flex flex-1 items-center justify-center">
                             <p class="text-gray-500 dark:text-gray-400">No transcript available</p>
                         </div>
 
                         <div v-else class="flex-1 space-y-2 overflow-y-auto" style="min-height: 0; max-height: 600px">
                             <div
-                                v-for="transcript in transcripts"
+                                v-for="transcript in transcriptItems"
                                 :key="transcript.id"
                                 :class="[
                                     'rounded-lg p-3 text-sm',
-                                    transcript.speaker === 'salesperson'
+                                    transcriptRole(transcript) === 'salesperson'
                                         ? 'ml-12 bg-blue-50 dark:bg-blue-900/20'
-                                        : transcript.speaker === 'customer'
+                                        : transcriptRole(transcript) === 'customer'
                                           ? 'mr-12 bg-green-50 dark:bg-green-900/20'
-                                          : 'mx-6 bg-gray-50 text-xs dark:bg-gray-800',
+                                          : transcriptRole(transcript) === 'bot' || transcript.speaker === 'system'
+                                            ? 'mx-6 bg-gray-100 text-xs dark:bg-gray-800'
+                                            : 'mx-6 border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900',
                                 ]"
                             >
                                 <div class="mb-1 flex items-baseline justify-between">
                                     <span
                                         :class="[
                                             'font-medium',
-                                            transcript.speaker === 'salesperson'
+                                            transcriptRole(transcript) === 'salesperson'
                                                 ? 'text-blue-700 dark:text-blue-400'
-                                                : transcript.speaker === 'customer'
+                                                : transcriptRole(transcript) === 'customer'
                                                   ? 'text-green-700 dark:text-green-400'
                                                   : 'text-gray-600 dark:text-gray-400',
                                         ]"
                                     >
                                         {{ transcript.speaker_label }}
+                                        <span v-if="transcript.is_you" class="ml-1 text-xs font-normal text-blue-600 dark:text-blue-400">You</span>
                                     </span>
                                     <span class="text-xs text-gray-500 dark:text-gray-400">
                                         {{ formatTime(transcript.spoken_at) }}
@@ -303,7 +354,22 @@ const deleteConversation = async () => {
                                 <p class="leading-relaxed text-gray-800 dark:text-gray-200">
                                     {{ transcript.text }}
                                 </p>
+                                <p
+                                    v-if="transcript.provider === 'recall' && transcript.provider_item_id"
+                                    class="mt-2 font-mono text-[11px] break-all text-gray-500 dark:text-gray-500"
+                                >
+                                    Evidence {{ transcript.provider_item_id }}
+                                </p>
                             </div>
+                        </div>
+                        <div v-if="transcripts.last_page > 1" class="mt-3 flex items-center justify-between border-t pt-3">
+                            <Button variant="outline" size="sm" :disabled="!transcripts.prev_page_url" @click="visitPage(transcripts.prev_page_url)">
+                                Previous
+                            </Button>
+                            <span class="text-xs text-gray-500">Page {{ transcripts.current_page }} of {{ transcripts.last_page }}</span>
+                            <Button variant="outline" size="sm" :disabled="!transcripts.next_page_url" @click="visitPage(transcripts.next_page_url)">
+                                Next
+                            </Button>
                         </div>
                     </BaseCard>
                 </div>
@@ -325,6 +391,61 @@ const deleteConversation = async () => {
                                     {{ insight.data.text }}
                                 </p>
                             </div>
+                        </div>
+                    </BaseCard>
+
+                    <BaseCard v-if="groupedInsights.knowledge_card?.length > 0">
+                        <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Knowledge</h3>
+                        <div class="space-y-3">
+                            <div v-for="insight in groupedInsights.knowledge_card" :key="insight.id" class="text-sm">
+                                <p class="font-medium text-gray-900 dark:text-gray-100">{{ insight.data.title }}</p>
+                                <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                                    {{ insight.data.content }}
+                                </p>
+                            </div>
+                        </div>
+                    </BaseCard>
+
+                    <BaseCard v-if="groupedInsights.talk_track?.length > 0">
+                        <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Talk Tracks</h3>
+                        <p
+                            v-for="insight in groupedInsights.talk_track"
+                            :key="insight.id"
+                            class="mb-2 text-xs leading-relaxed text-gray-600 last:mb-0 dark:text-gray-400"
+                        >
+                            {{ insight.data.text }}
+                        </p>
+                    </BaseCard>
+
+                    <BaseCard v-if="groupedInsights.objection?.length > 0">
+                        <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Objections</h3>
+                        <div v-for="insight in groupedInsights.objection" :key="insight.id" class="mb-2 text-xs last:mb-0">
+                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ insight.data.objection || insight.data.text }}</p>
+                            <p v-if="insight.data.response" class="mt-1 text-gray-600 dark:text-gray-400">{{ insight.data.response }}</p>
+                        </div>
+                    </BaseCard>
+
+                    <BaseCard v-if="groupedInsights.pain_point?.length > 0">
+                        <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Pain Points</h3>
+                        <div v-for="insight in groupedInsights.pain_point" :key="insight.id" class="mb-3 text-sm last:mb-0">
+                            <p class="text-gray-800 dark:text-gray-200">{{ insight.data.text }}</p>
+                            <p v-if="insight.data.category" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                {{ insight.data.category }} · {{ insight.data.severity }}
+                            </p>
+                            <p v-if="insight.evidence_item_ids.length" class="mt-2 font-mono text-[11px] break-all text-gray-500 dark:text-gray-500">
+                                Evidence {{ insight.evidence_item_ids.join(', ') }}
+                            </p>
+                        </div>
+                    </BaseCard>
+
+                    <BaseCard v-if="groupedInsights.discussion_topic?.length > 0">
+                        <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Discussion Topics</h3>
+                        <div v-for="insight in groupedInsights.discussion_topic" :key="insight.id" class="mb-3 text-sm last:mb-0">
+                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ insight.data.name }}</p>
+                            <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-400">{{ insight.data.context }}</p>
+                            <p v-if="insight.evidence_item_ids.length" class="mt-2 font-mono text-[11px] break-all text-gray-500 dark:text-gray-500">
+                                Evidence {{ insight.evidence_item_ids.join(', ') }}
+                            </p>
                         </div>
                     </BaseCard>
 
@@ -372,6 +493,16 @@ const deleteConversation = async () => {
                             placeholder="Add your notes here..."
                         ></textarea>
                     </BaseCard>
+
+                    <div v-if="insights.last_page > 1" class="flex items-center justify-between">
+                        <Button variant="outline" size="sm" :disabled="!insights.prev_page_url" @click="visitPage(insights.prev_page_url)">
+                            Newer
+                        </Button>
+                        <span class="text-xs text-gray-500">{{ insights.current_page }} / {{ insights.last_page }}</span>
+                        <Button variant="outline" size="sm" :disabled="!insights.next_page_url" @click="visitPage(insights.next_page_url)">
+                            Older
+                        </Button>
+                    </div>
                 </div>
             </div>
         </PageContainer>

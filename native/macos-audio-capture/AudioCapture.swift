@@ -5,70 +5,89 @@ import ScreenCaptureKit
 import CoreAudio
 import AVFoundation
 import AppKit
+import Darwin
+
+// MARK: - Packet Writer
+final class PacketWriter {
+    static let shared = PacketWriter()
+
+    private let queue = DispatchQueue(label: "com.clueless.audio-capture.output", qos: .userInitiated)
+
+    private init() {}
+
+    func send(_ packet: [String: Any]) {
+        queue.async {
+            guard let data = try? JSONSerialization.data(withJSONObject: packet) else {
+                return
+            }
+
+            FileHandle.standardOutput.write(data)
+            FileHandle.standardOutput.write(Data([0x0A]))
+        }
+    }
+
+    func flush() {
+        queue.sync {}
+    }
+}
 
 // MARK: - Process Lock Manager
-class ProcessLockManager {
+final class ProcessLockManager {
     private static let lockFilePath = "/tmp/macos-audio-capture.lock"
-    private static let pidFilePath = "/tmp/macos-audio-capture.pid"
-    
+    private static var lockDescriptor: Int32 = -1
+
     static func acquireLock() -> Bool {
-        let pid = ProcessInfo.processInfo.processIdentifier
-        
-        // Check if another process is running
-        if let existingPid = readPidFile() {
-            // Check if the process is actually running
-            if isProcessRunning(pid: existingPid) {
-                return false // Another instance is running
-            } else {
-                // Clean up stale lock
-                removeLock()
-            }
-        }
-        
-        // Write our PID
-        do {
-            try "\(pid)".write(toFile: pidFilePath, atomically: true, encoding: .utf8)
-            return true
-        } catch {
+        let descriptor = open(lockFilePath, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+        guard descriptor >= 0 else {
             return false
         }
-    }
-    
-    static func releaseLock() {
-        removeLock()
-    }
-    
-    private static func readPidFile() -> Int32? {
-        guard let pidString = try? String(contentsOfFile: pidFilePath),
-              let pid = Int32(pidString.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            return nil
+
+        guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else {
+            close(descriptor)
+            return false
         }
-        return pid
+
+        lockDescriptor = descriptor
+        let pid = "\(ProcessInfo.processInfo.processIdentifier)\n"
+        ftruncate(descriptor, 0)
+        _ = pid.withCString { pointer in
+            Darwin.write(descriptor, pointer, strlen(pointer))
+        }
+
+        return true
     }
-    
-    private static func isProcessRunning(pid: Int32) -> Bool {
-        return kill(pid, 0) == 0
-    }
-    
-    private static func removeLock() {
-        try? FileManager.default.removeItem(atPath: pidFilePath)
-        try? FileManager.default.removeItem(atPath: lockFilePath)
+
+    static func releaseLock() {
+        guard lockDescriptor >= 0 else {
+            return
+        }
+
+        flock(lockDescriptor, LOCK_UN)
+        close(lockDescriptor)
+        lockDescriptor = -1
     }
 }
 
 // MARK: - Audio Capture Manager
 @available(macOS 13.0, *)
-class AudioCaptureManager: NSObject {
+final class AudioCaptureManager: NSObject {
     private var stream: SCStream?
     private var audioOutput: AudioOutput?
+    private let sampleHandlerQueue = DispatchQueue(
+        label: "com.clueless.audio-capture.samples",
+        qos: .userInitiated
+    )
+    private let heartbeatQueue = DispatchQueue(
+        label: "com.clueless.audio-capture.heartbeat",
+        qos: .utility
+    )
     private let sampleRate: Double = 24000
     private let channelCount: Int = 1
     private var isCapturing = false
     private var retryCount = 0
     private let maxRetries = 3
     private let retryDelay: TimeInterval = 2.0
-    private var heartbeatTimer: Timer?
-    private var lastHeartbeat = Date()
+    private var heartbeatTimer: DispatchSourceTimer?
     
     // MARK: - Initialize
     override init() {
@@ -153,7 +172,11 @@ class AudioCaptureManager: NSObject {
         
         // Add audio output
         if let audioOutput = audioOutput {
-            try stream?.addStreamOutput(audioOutput, type: .audio, sampleHandlerQueue: .main)
+            try stream?.addStreamOutput(
+                audioOutput,
+                type: .audio,
+                sampleHandlerQueue: sampleHandlerQueue
+            )
         }
         
         // Start capture
@@ -174,29 +197,28 @@ class AudioCaptureManager: NSObject {
     // MARK: - Heartbeat Management
     private func startHeartbeat() {
         stopHeartbeat()
-        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
-            self.sendHeartbeat()
+
+        let timer = DispatchSource.makeTimerSource(queue: heartbeatQueue)
+        timer.schedule(deadline: .now() + 5, repeating: 5)
+        timer.setEventHandler { [weak self] in
+            self?.sendHeartbeat()
         }
+        timer.resume()
+        heartbeatTimer = timer
     }
     
     private func stopHeartbeat() {
-        heartbeatTimer?.invalidate()
+        heartbeatTimer?.cancel()
         heartbeatTimer = nil
     }
     
     private func sendHeartbeat() {
-        lastHeartbeat = Date()
-        let heartbeat = [
+        let now = Date()
+        PacketWriter.shared.send([
             "type": "heartbeat",
-            "timestamp": ISO8601DateFormatter().string(from: lastHeartbeat),
+            "timestamp": ISO8601DateFormatter().string(from: now),
             "capturing": isCapturing
-        ] as [String : Any]
-        
-        if let data = try? JSONSerialization.data(withJSONObject: heartbeat),
-           let json = String(data: data, encoding: .utf8) {
-            print(json)
-            fflush(stdout)
-        }
+        ])
     }
     
     // MARK: - Stop Capture
@@ -242,39 +264,25 @@ class AudioCaptureManager: NSObject {
     
     // MARK: - Send Status
     private func sendStatus(_ state: String) {
-        let status = ["type": "status", "state": state]
-        if let data = try? JSONSerialization.data(withJSONObject: status),
-           let json = String(data: data, encoding: .utf8) {
-            print(json)
-            fflush(stdout)
-        }
+        PacketWriter.shared.send(["type": "status", "state": state])
     }
     
     // MARK: - Send Error
     private func sendError(_ message: String, code: Int = 0) {
-        let error: [String: Any] = [
+        PacketWriter.shared.send([
             "type": "error",
             "message": message,
             "code": code
-        ]
-        if let data = try? JSONSerialization.data(withJSONObject: error),
-           let json = String(data: data, encoding: .utf8) {
-            print(json)
-            fflush(stdout)
-        }
+        ])
     }
 }
 
 // MARK: - Audio Output Handler
 @available(macOS 13.0, *)
-class AudioOutput: NSObject, SCStreamOutput {
-    private let sampleRate: Double
-    private var audioConverter: AVAudioConverter?
+final class AudioOutput: NSObject, SCStreamOutput {
     private let outputFormat: AVAudioFormat
     
     init(sampleRate: Double) {
-        self.sampleRate = sampleRate
-        
         // Create output format (PCM16, mono, 24kHz)
         self.outputFormat = AVAudioFormat(
             commonFormat: .pcmFormatInt16,
@@ -307,10 +315,13 @@ class AudioOutput: NSObject, SCStreamOutput {
         let floatPointer = UnsafeRawPointer(data).bindMemory(to: Float32.self, capacity: samples)
         
         var pcm16Data = Data(capacity: samples * 2)
+        var sumOfSquares = 0.0
         
         for i in 0..<samples {
             let sample = floatPointer[i]
             let clamped = max(-1.0, min(1.0, sample))
+            let normalizedSample = Double(clamped)
+            sumOfSquares += normalizedSample * normalizedSample
             let int16Value = Int16(clamped * 32767)
             withUnsafeBytes(of: int16Value) { bytes in
                 pcm16Data.append(contentsOf: bytes)
@@ -319,13 +330,12 @@ class AudioOutput: NSObject, SCStreamOutput {
         
         // Send audio data as base64
         let base64Audio = pcm16Data.base64EncodedString()
-        let audioPacket = ["type": "audio", "data": base64Audio]
-        
-        if let jsonData = try? JSONSerialization.data(withJSONObject: audioPacket),
-           let json = String(data: jsonData, encoding: .utf8) {
-            print(json)
-            fflush(stdout)
-        }
+        let rmsLevel = samples > 0 ? sqrt(sumOfSquares / Double(samples)) : 0.0
+        PacketWriter.shared.send([
+            "type": "audio",
+            "data": base64Audio,
+            "level": rmsLevel
+        ])
     }
 }
 
@@ -361,30 +371,45 @@ enum CaptureError: Error, LocalizedError {
 
 // MARK: - Command Handler
 @available(macOS 13.0, *)
-class CommandHandler {
+final class CommandHandler {
     private let captureManager = AudioCaptureManager()
+    private let inputQueue = DispatchQueue(
+        label: "com.clueless.audio-capture.commands",
+        qos: .userInitiated
+    )
+    private var commandTask: Task<Void, Never>?
+    private var signalSources: [DispatchSourceSignal] = []
     
     func start() {
-        // Set up input handler
-        DispatchQueue.global().async {
+        configureSignalHandling()
+
+        inputQueue.async { [weak self] in
             while let line = readLine() {
-                self.handleCommand(line)
+                self?.enqueueCommand(line)
             }
+
+            self?.enqueueShutdown()
         }
         
         // Keep the run loop alive
         RunLoop.main.run()
     }
     
-    private func handleCommand(_ line: String) {
+    private func enqueueCommand(_ line: String) {
         guard let data = line.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let command = json["command"] as? String else {
             sendError("Invalid command format")
             return
         }
-        
-        Task {
+
+        let previousTask = commandTask
+        commandTask = Task { [weak self] in
+            _ = await previousTask?.result
+            guard let self else {
+                return
+            }
+
             do {
                 switch command {
                 case "check_permission":
@@ -395,6 +420,8 @@ class CommandHandler {
                     try await captureManager.stopCapture()
                 case "restart":
                     try await captureManager.restartCapture()
+                case "shutdown":
+                    await shutdown()
                 default:
                     sendError("Unknown command: \(command)")
                 }
@@ -405,40 +432,55 @@ class CommandHandler {
             }
         }
     }
+
+    private func configureSignalHandling() {
+        for signalNumber in [SIGINT, SIGTERM] {
+            signal(signalNumber, SIG_IGN)
+            let source = DispatchSource.makeSignalSource(
+                signal: signalNumber,
+                queue: inputQueue
+            )
+            source.setEventHandler { [weak self] in
+                self?.enqueueShutdown()
+            }
+            source.resume()
+            signalSources.append(source)
+        }
+    }
+
+    private func enqueueShutdown() {
+        let previousTask = commandTask
+        commandTask = Task { [weak self] in
+            _ = await previousTask?.result
+            await self?.shutdown()
+        }
+    }
+
+    private func shutdown() async {
+        try? await captureManager.stopCapture()
+        ProcessLockManager.releaseLock()
+        PacketWriter.shared.flush()
+        exit(0)
+    }
     
     private func checkPermission() async {
         do {
             // Try to get shareable content to check permission
             _ = try await SCShareableContent.current
             // If successful, we have permission
-            let status: [String: Any] = ["type": "permission", "granted": true]
-            if let data = try? JSONSerialization.data(withJSONObject: status),
-               let json = String(data: data, encoding: .utf8) {
-                print(json)
-                fflush(stdout)
-            }
+            PacketWriter.shared.send(["type": "permission", "granted": true])
         } catch {
             // No permission
-            let status: [String: Any] = ["type": "permission", "granted": false]
-            if let data = try? JSONSerialization.data(withJSONObject: status),
-               let json = String(data: data, encoding: .utf8) {
-                print(json)
-                fflush(stdout)
-            }
+            PacketWriter.shared.send(["type": "permission", "granted": false])
         }
     }
     
     private func sendError(_ message: String, code: Int = 0) {
-        let error: [String: Any] = [
+        PacketWriter.shared.send([
             "type": "error",
             "message": message,
             "code": code
-        ]
-        if let data = try? JSONSerialization.data(withJSONObject: error),
-           let json = String(data: data, encoding: .utf8) {
-            print(json)
-            fflush(stdout)
-        }
+        ])
     }
 }
 
@@ -446,39 +488,23 @@ class CommandHandler {
 if #available(macOS 13.0, *) {
     // Check for process lock first
     if !ProcessLockManager.acquireLock() {
-        let error: [String: Any] = [
+        PacketWriter.shared.send([
             "type": "error",
             "message": "Another audio capture process is already running",
             "code": 1003
-        ]
-        if let data = try? JSONSerialization.data(withJSONObject: error),
-           let json = String(data: data, encoding: .utf8) {
-            print(json)
-        }
+        ])
+        PacketWriter.shared.flush()
         exit(1)
-    }
-    
-    // Set up signal handlers for clean shutdown
-    signal(SIGINT) { _ in
-        ProcessLockManager.releaseLock()
-        exit(0)
-    }
-    signal(SIGTERM) { _ in
-        ProcessLockManager.releaseLock()
-        exit(0)
     }
     
     let handler = CommandHandler()
     handler.start()
 } else {
-    let error: [String: Any] = [
+    PacketWriter.shared.send([
         "type": "error",
         "message": "macOS 13.0 or later required",
         "code": 1000
-    ]
-    if let data = try? JSONSerialization.data(withJSONObject: error),
-       let json = String(data: data, encoding: .utf8) {
-        print(json)
-    }
+    ])
+    PacketWriter.shared.flush()
     exit(1)
 }

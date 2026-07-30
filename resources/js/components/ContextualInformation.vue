@@ -1,7 +1,5 @@
 <template>
-    <div
-        class="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900"
-    >
+    <div class="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
         <div class="mb-3 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Contextual Information</h3>
             <div v-if="loading" class="animate-pulse text-xs text-gray-600 dark:text-gray-400">Analyzing...</div>
@@ -13,7 +11,7 @@
 
         <div
             v-else-if="relevantSection"
-            class="scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent flex-1 min-h-0 overflow-y-auto"
+            class="scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent min-h-0 flex-1 overflow-y-auto"
         >
             <div class="space-y-3">
                 <transition

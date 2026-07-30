@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\MeetingAnalysisController;
+use App\Http\Controllers\MeetingCaptureController;
+use App\Http\Controllers\MeetingEventController;
+use App\Http\Controllers\MeetingParticipantController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -20,21 +24,12 @@ Route::get('dashboard', function () {
 
 // NativePHP Desktop Routes
 Route::get('/realtime-agent', function () {
-    return Inertia::render('RealtimeAgent/Main');
+    return Inertia::render('RealtimeAgent/Copilot');
 })->name('realtime-agent');
 
-// Realtime Agent V2 - OpenAI Agents SDK Implementation
-Route::get('/realtime-agent-v2', function () {
-    return Inertia::render('RealtimeAgent/MainV2');
-})->name('realtime-agent-v2');
-
-// Audio Test Route - Testing electron-audio-loopback
-Route::get('/audio-test', [\App\Http\Controllers\AudioTestController::class, 'index'])
-    ->name('audio-test');
-
 // Realtime API Routes
-Route::post('/api/realtime/ephemeral-key', [\App\Http\Controllers\RealtimeController::class, 'generateEphemeralKey'])
-    ->name('realtime.ephemeral-key');
+Route::post('/api/realtime/client-secret', [\App\Http\Controllers\RealtimeController::class, 'createClientSecret'])
+    ->name('realtime.client-secret');
 
 // API Key Status Route
 Route::get('/api/openai/status', function () {
@@ -44,6 +39,33 @@ Route::get('/api/openai/status', function () {
         'hasApiKey' => $apiKeyService->hasApiKey(),
     ]);
 })->name('api.openai.status');
+
+Route::get('/api/recall/status', [MeetingCaptureController::class, 'status'])
+    ->name('api.recall.status');
+Route::post('/meeting-captures', [MeetingCaptureController::class, 'store'])
+    ->name('meeting-captures.store');
+Route::post('/meeting-captures/{capture}/stop', [MeetingCaptureController::class, 'stop'])
+    ->name('meeting-captures.stop');
+Route::get('/meeting-captures/{capture}/events', MeetingEventController::class)
+    ->name('meeting-captures.events');
+Route::get('/meeting-captures/{capture}/insights', \App\Http\Controllers\MeetingInsightController::class)
+    ->name('meeting-captures.insights');
+Route::patch(
+    '/meeting-captures/{capture}/participants/{participant}',
+    [MeetingParticipantController::class, 'update'],
+)->name('meeting-captures.participants.update');
+Route::post(
+    '/meeting-captures/{capture}/analysis-deliveries/claim',
+    [MeetingAnalysisController::class, 'claim'],
+)->name('meeting-captures.analysis.claim');
+Route::post(
+    '/meeting-captures/{capture}/analysis-deliveries/{delivery}/ack',
+    [MeetingAnalysisController::class, 'acknowledge'],
+)->name('meeting-captures.analysis.acknowledge');
+Route::post(
+    '/meeting-captures/{capture}/analysis-deliveries/{delivery}/analyze',
+    [MeetingAnalysisController::class, 'analyze'],
+)->name('meeting-captures.analysis.analyze');
 
 // Open external URL in default browser (for NativePHP)
 Route::post('/api/open-external', function (\Illuminate\Http\Request $request) {

@@ -6,7 +6,7 @@ import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { FileText, Plus } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
@@ -73,12 +73,14 @@ const deleteTemplate = async (template: Template) => {
         try {
             await axios.delete(route('templates.destroy', template.id));
             await fetchTemplates();
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to delete template:', error);
 
             // Handle specific error messages from backend
-            if (error.response?.status === 422 && error.response?.data?.error) {
-                alert(error.response.data.error);
+            const requestError = error instanceof AxiosError ? error : null;
+            const responseData = requestError?.response?.data as { error?: string } | undefined;
+            if (requestError?.response?.status === 422 && responseData?.error) {
+                alert(responseData.error);
             } else {
                 alert('Failed to delete template. Please try again.');
             }

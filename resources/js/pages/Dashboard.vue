@@ -16,9 +16,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 const features = [
     {
         icon: Mic,
-        title: 'Realtime Agent',
-        description: 'Voice conversations with real-time AI coaching',
-        href: '/realtime-agent-v2',
+        title: 'Sales Copilot',
+        description: 'Silent realtime sales guidance with remote knowledge tools',
+        href: '/realtime-agent',
         color: 'text-green-600 dark:text-green-400',
     },
     {

@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    'recall' => [
+        'region' => env('RECALL_REGION', 'us-west-2'),
+        'base_url' => env('RECALL_BASE_URL', 'https://us-west-2.recall.ai'),
+        'webhook_url' => env('RECALL_WEBHOOK_URL'),
+        'tunnel_host' => env('RECALL_TUNNEL_HOST'),
+        'ingress_only' => (bool) env('RECALL_INGRESS_ONLY', false),
+        'api_key' => env('RECALL_API_KEY'),
+        'webhook_secret' => env('RECALL_WEBHOOK_SECRET'),
+        'connect_timeout' => (int) env('RECALL_CONNECT_TIMEOUT', 5),
+        'timeout' => (int) env('RECALL_TIMEOUT', 15),
+        'webhook_tolerance_seconds' => (int) env('RECALL_WEBHOOK_TOLERANCE_SECONDS', 300),
+        'webhook_max_bytes' => (int) env('RECALL_WEBHOOK_MAX_BYTES', 1048576),
+        'partial_transcripts' => (bool) env('RECALL_PARTIAL_TRANSCRIPTS', false),
+        'analysis_lease_seconds' => (int) env('RECALL_ANALYSIS_LEASE_SECONDS', 30),
+    ],
+
 ];

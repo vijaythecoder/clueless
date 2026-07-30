@@ -39,22 +39,22 @@ trait MocksOpenAI
     }
 
     /**
-     * Mock a successful ephemeral key generation response
+     * Mock a successful Realtime client secret response.
      */
-    protected function mockEphemeralKeySuccess(): void
+    protected function mockRealtimeClientSecretSuccess(): void
     {
         Http::fake([
-            'api.openai.com/v1/realtime/sessions' => Http::response(mockEphemeralKeyResponse(), 200),
+            'api.openai.com/v1/realtime/client_secrets' => Http::response(mockRealtimeClientSecretResponse(), 200),
         ]);
     }
 
     /**
-     * Mock a failed ephemeral key generation response
+     * Mock a failed Realtime client secret response.
      */
-    protected function mockEphemeralKeyFailure(): void
+    protected function mockRealtimeClientSecretFailure(): void
     {
         Http::fake([
-            'api.openai.com/v1/realtime/sessions' => Http::response([
+            'api.openai.com/v1/realtime/client_secrets' => Http::response([
                 'error' => [
                     'message' => 'Invalid API key',
                     'type' => 'invalid_request_error',
@@ -65,15 +65,15 @@ trait MocksOpenAI
     }
 
     /**
-     * Mock an invalid ephemeral key response structure
+     * Mock an invalid Realtime client secret response structure.
      */
-    protected function mockEphemeralKeyInvalidResponse(): void
+    protected function mockRealtimeClientSecretInvalidResponse(): void
     {
         Http::fake([
-            'api.openai.com/v1/realtime/sessions' => Http::response([
+            'api.openai.com/v1/realtime/client_secrets' => Http::response([
                 'id' => 'sess_123',
-                'model' => 'gpt-4o-mini-realtime-preview-2024-12-17',
-                // Missing client_secret structure
+                'model' => 'gpt-realtime-2.1',
+                // Missing GA client secret response structure
             ], 200),
         ]);
     }

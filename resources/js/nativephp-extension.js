@@ -1,274 +1,547 @@
-// NativePHP Extension for Audio Loopback Support
-// This extension provides system audio capture functionality for Electron apps
+import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { constants as fsConstants } from 'node:fs';
+import { access } from 'node:fs/promises';
+import { join } from 'node:path';
 
-import { systemPreferences, ipcMain, shell } from 'electron';
+const AUDIO_PACKET_CHANNEL = 'nativephp:system-audio:packet';
+const CALL_CLOSE_REQUEST_CHANNEL = 'nativephp:call-lifecycle:close-request';
+const CANONICAL_AUDIO_HELPER = 'native/macos-audio-capture/macos-audio-capture';
+const SUPPORTED_PERMISSIONS = new Set(['microphone', 'screen']);
 
-    
-// Store audio loopback state
-const audioLoopbackState = {
-  initialized: false,
-  handlerSet: false
-};
+function normalizePermissionStatus(status) {
+    switch (status) {
+        case 'granted':
+            return 'authorized';
+        case 'notDetermined':
+            return 'not-determined';
+        default:
+            return status || 'not-determined';
+    }
+}
 
-export default {
-  // Hook into Electron lifecycle - called before app is ready
-  beforeReady: async () => {
-    console.log('[Extension] beforeReady hook called');
-    
-    // Method 1: Try to use electron-audio-loopback package if available
+function errorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
+
+function isTrustedDisplayMediaRequest(request) {
+    if (!request?.userGesture || typeof request.securityOrigin !== 'string') {
+        return false;
+    }
+
     try {
-      const audioLoopbackModule = await import('electron-audio-loopback');
-      const initAudioLoopback = audioLoopbackModule.initMain;
-      
-      if (initAudioLoopback) {
-        console.log('[Extension] Initializing electron-audio-loopback package...');
-        initAudioLoopback();
-        audioLoopbackState.initialized = true;
-        console.log('[Extension] electron-audio-loopback initialized successfully');
-        
-        // The package should register its own IPC handlers, but let's verify
-        setTimeout(() => {
-          const hasEnableHandler = ipcMain.listenerCount('enable-loopback-audio') > 0;
-          const hasDisableHandler = ipcMain.listenerCount('disable-loopback-audio') > 0;
-          console.log('[Extension] IPC handler check:', {
-            'enable-loopback-audio': hasEnableHandler,
-            'disable-loopback-audio': hasDisableHandler
-          });
-        }, 100);
-        
-        return; // Package handles everything, no need for manual implementation
-      }
-    } catch (error) {
-      console.log('[Extension] electron-audio-loopback not available:', error.message);
-      console.log('[Extension] Falling back to manual implementation...');
+        const origin = new URL(request.securityOrigin);
+        return (
+            (origin.protocol === 'http:' || origin.protocol === 'https:') &&
+            (origin.hostname === '127.0.0.1' || origin.hostname === 'localhost' || origin.hostname === '[::1]')
+        );
+    } catch {
+        return false;
     }
-  },
-  
-  // Hook into Electron lifecycle - called after app is ready
-  afterReady: async (app, mainWindow) => {
-    console.log('[Extension Test] afterReady hook called', {
-      hasApp: !!app,
-      hasMainWindow: !!mainWindow
-    });
-    // Add any setup that needs to happen after app is ready
-  },
-  
-  // Hook into Electron lifecycle - called before app quits
-  beforeQuit: async () => {
-    console.log('[Extension Test] beforeQuit hook called');
-    // Add any cleanup that needs to happen before app quits
-  },
-  
-  // Custom IPC handlers for renderer communication
-  ipcHandlers: {
-    // Audio loopback handlers are now provided by the electron-audio-loopback package
-    // We don't need to register them here to avoid conflicts
-    
-    // Microphone permission handlers
-    'check-microphone-permission': async () => {
-      if (process.platform !== 'darwin') {
-        return { status: 'authorized' };
-      }
-      
-      try {
-        const permissions = await import('node-mac-permissions');
-        const status = permissions.default.getAuthStatus('microphone');
-        return { status };
-      } catch (error) {
-        console.error('[Extension] Error checking microphone permission:', error);
-        return { status: 'not-determined', error: error.message };
-      }
-    },
-    
-    'request-microphone-permission': async () => {
-      if (process.platform !== 'darwin') {
-        return { granted: true };
-      }
-      
-      try {
-        const permissions = await import('node-mac-permissions');
-        const status = await permissions.default.askForMicrophoneAccess();
-        return { granted: status === 'authorized' };
-      } catch (error) {
-        console.error('[Extension] Error requesting microphone permission:', error);
-        return { granted: false, error: error.message };
-      }
-    },
-    
-    // Screen capture permission handlers
-    'check-screen-capture-permission': async () => {
-      if (process.platform !== 'darwin') {
-        return { status: 'authorized' };
-      }
-      
-      try {
-        const permissions = await import('node-mac-permissions');
-        const status = permissions.default.getAuthStatus('screen');
-        return { status };
-      } catch (error) {
-        console.error('[Extension] Error checking screen capture permission:', error);
-        return { status: 'not-determined', error: error.message };
-      }
-    },
-    
-    'request-screen-capture-permission': async () => {
-      if (process.platform !== 'darwin') {
-        return { granted: true };
-      }
-      
-      try {
-        const permissions = await import('node-mac-permissions');
-        // askForScreenCaptureAccess returns a boolean directly
-        const granted = await permissions.default.askForScreenCaptureAccess();
-        return { granted };
-      } catch (error) {
-        console.error('[Extension] Error requesting screen capture permission:', error);
-        return { granted: false, error: error.message };
-      }
-    },
-    
-    // Open privacy settings handler
-    'open-privacy-settings': async () => {
-      console.log('[Extension] IPC handler open-privacy-settings called');
-      
-      if (process.platform !== 'darwin') {
-        return { success: true };
-      }
-      
-      try {
-        await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy');
-        return { success: true };
-      } catch (error) {
-        console.error('[Extension] Error opening privacy settings:', error);
-        return { success: false, error: error.message };
-      }
-    },
-    
-    // Test handler to verify IPC is working
-    'test:ping': async (_event, ...args) => {
-      console.log('[Extension Test] IPC handler test:ping called', { args });
-      return { 
-        success: true, 
-        message: 'Pong! Extension IPC handlers are working!',
-        timestamp: new Date().toISOString(),
-        receivedArgs: args
-      };
-    },
-    
-    'test:echo': async (_event, message) => {
-      console.log('[Extension Test] IPC handler test:echo called', { message });
-      return { 
-        success: true, 
-        echo: message,
-        processedAt: new Date().toISOString()
-      };
-    },
-    
-    'test:get-info': async () => {
-      console.log('[Extension Test] IPC handler test:get-info called');
-      return {
-        success: true,
-        info: {
-          extensionVersion: '1.0.0',
-          nodeVersion: process.version,
-          platform: process.platform,
-          arch: process.arch
-        }
-      };
-    }
-  },
+}
 
-  // Preload script extensions - APIs to expose to the renderer  
-  // NOTE: The NativePHP preload already exposes window.audioLoopback, so we don't need to do it here
-  // The frontend should use window.Native.ipcRendererInvoke['enable-loopback-audio']() which is already available
-  
-  // Custom API endpoints accessible from Laravel
-  apiRoutes: (router) => {
-    // Screen recording permission check for macOS
-    router.get('/api/system/screen-recording-access', (req, res) => {
-      console.log('[Extension] API route GET /api/system/screen-recording-access called');
-      
-      if (process.platform === 'darwin') {
-        // On macOS, check if we have screen recording permission
-        const status = systemPreferences.getMediaAccessStatus('screen');
-        res.json({ 
-          status,
-          platform: 'darwin',
-          hasAccess: status === 'granted'
-        });
-      } else {
-        // Non-macOS platforms don't need this permission
-        res.json({ 
-          status: 'granted',
-          platform: process.platform,
-          hasAccess: true
-        });
-      }
-    });
-    
-    // Test endpoint - GET
-    router.get('/api/test/status', (req, res) => {
-      console.log('[Extension Test] API route GET /api/test/status called');
-      res.json({ 
-        status: 'ok',
-        message: 'Extension API routes are working!',
-        timestamp: new Date().toISOString()
-      });
-    });
-    
-    // Test endpoint - POST
-    router.post('/api/test/echo', (req, res) => {
-      const { message } = req.body;
-      console.log('[Extension Test] API route POST /api/test/echo called', { message });
-      res.json({ 
-        success: true,
-        echo: message,
-        processedAt: new Date().toISOString()
-      });
-    });
-    
-    // Test endpoint - GET with params
-    router.get('/api/test/info/:param', (req, res) => {
-      const { param } = req.params;
-      console.log('[Extension Test] API route GET /api/test/info/:param called', { param });
-      res.json({
-        success: true,
-        receivedParam: param,
-        query: req.query,
-        headers: req.headers
-      });
-    });
-    
-    // Media access status endpoint
-    router.get('/api/system/media-access-status/:mediaType', (req, res) => {
-      const { mediaType } = req.params;
-      console.log('[Extension Test] API route GET /api/system/media-access-status/:mediaType called', { mediaType });
-      
-      if (process.platform === 'darwin') {
-        const status = systemPreferences.getMediaAccessStatus(mediaType);
-        res.json({ status });
-      } else {
-        res.json({ status: 'granted' }); // Non-macOS platforms don't have this API
-      }
-    });
-    
-    // Ask for media access endpoint
-    router.post('/api/system/ask-for-media-access', async (req, res) => {
-      const { mediaType } = req.body;
-      console.log('[Extension Test] API route POST /api/system/ask-for-media-access called', { mediaType });
-      
-      if (process.platform === 'darwin') {
-        try {
-          const granted = await systemPreferences.askForMediaAccess(mediaType);
-          res.json({ granted });
-        } catch (e) {
-          res.status(400).json({
-            error: e.message,
-          });
+export function createNativePhpExtension({
+    appPath,
+    BrowserWindow,
+    desktopCapturer,
+    Menu,
+    platform = process.platform,
+    session,
+    shell,
+    systemPreferences,
+}) {
+    const helperPath = join(appPath, CANONICAL_AUDIO_HELPER);
+    let capture = null;
+    let displayMediaHandlerInstalled = false;
+    const busyCallWindows = new Set();
+    const callLifecycleStates = new WeakMap();
+    let quitAttempt = null;
+
+    function validatePermission(permission) {
+        if (!SUPPORTED_PERMISSIONS.has(permission)) {
+            throw new Error(`Unsupported permission: ${permission}`);
         }
-      } else {
-        res.json({ granted: true }); // Non-macOS platforms don't need this
-      }
-    });
-  }
-};
+    }
+
+    function checkPermission(permission) {
+        validatePermission(permission);
+
+        if (platform !== 'darwin') {
+            return 'authorized';
+        }
+
+        return normalizePermissionStatus(systemPreferences.getMediaAccessStatus(permission));
+    }
+
+    async function requestPermission(permission) {
+        validatePermission(permission);
+
+        if (platform !== 'darwin') {
+            return 'authorized';
+        }
+
+        if (permission === 'microphone') {
+            const granted = await systemPreferences.askForMediaAccess('microphone');
+            return granted ? 'authorized' : 'denied';
+        }
+
+        try {
+            await desktopCapturer.getSources({ types: ['screen'] });
+        } catch (error) {
+            console.warn('[Clueless Native] Screen permission request failed.', errorMessage(error));
+        }
+
+        return checkPermission('screen');
+    }
+
+    function sendPacket(packet, ownedCapture = capture) {
+        if (!ownedCapture || capture !== ownedCapture || ownedCapture.owner.isDestroyed()) {
+            return;
+        }
+
+        ownedCapture.owner.send(AUDIO_PACKET_CHANNEL, packet);
+    }
+
+    function consumeStdout(chunk, ownedCapture) {
+        ownedCapture.buffer += chunk.toString('utf8');
+        const lines = ownedCapture.buffer.split('\n');
+        ownedCapture.buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            if (!line.trim()) {
+                continue;
+            }
+
+            try {
+                sendPacket(JSON.parse(line), ownedCapture);
+            } catch {
+                sendPacket(
+                    {
+                        type: 'error',
+                        message: 'The system audio helper returned an invalid packet.',
+                        code: 1101,
+                    },
+                    ownedCapture,
+                );
+            }
+        }
+    }
+
+    async function helperIsAvailable() {
+        if (process.platform !== 'darwin') {
+            return false;
+        }
+
+        try {
+            await access(helperPath, fsConstants.X_OK);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    async function stopCapture({ force = false } = {}) {
+        const ownedCapture = capture;
+        if (!ownedCapture) {
+            return { stopped: true, wasRunning: false };
+        }
+
+        capture = null;
+        ownedCapture.owner.removeListener('destroyed', ownedCapture.onOwnerDestroyed);
+
+        if (ownedCapture.child.exitCode !== null || ownedCapture.child.signalCode !== null) {
+            return { stopped: true, wasRunning: true };
+        }
+
+        if (!force && ownedCapture.child.stdin.writable) {
+            ownedCapture.child.stdin.write('{"command":"shutdown"}\n');
+        } else {
+            ownedCapture.child.kill('SIGTERM');
+        }
+
+        const exited = await new Promise((resolve) => {
+            const timeout = setTimeout(() => resolve(false), force ? 250 : 1000);
+            ownedCapture.child.once('exit', () => {
+                clearTimeout(timeout);
+                resolve(true);
+            });
+        });
+
+        if (!exited && ownedCapture.child.exitCode === null) {
+            ownedCapture.child.kill('SIGTERM');
+        }
+
+        return { stopped: true, wasRunning: true };
+    }
+
+    async function startCapture(event, options = {}) {
+        if (capture) {
+            if (capture.owner.id === event.sender.id) {
+                return { started: true, alreadyRunning: true };
+            }
+
+            throw new Error('System audio capture is already owned by another window.');
+        }
+
+        if (!(await helperIsAvailable())) {
+            throw new Error(`System audio helper is unavailable at ${CANONICAL_AUDIO_HELPER}.`);
+        }
+
+        const sampleRate = Number.isInteger(options.sampleRate) ? options.sampleRate : 24000;
+        if (sampleRate < 8000 || sampleRate > 48000) {
+            throw new Error('System audio sample rate must be between 8000 and 48000 Hz.');
+        }
+
+        const child = spawn(helperPath, [], {
+            cwd: appPath,
+            stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        const ownedCapture = {
+            buffer: '',
+            child,
+            owner: event.sender,
+            onOwnerDestroyed: () => {
+                void stopCapture();
+            },
+        };
+        capture = ownedCapture;
+
+        event.sender.once('destroyed', ownedCapture.onOwnerDestroyed);
+        child.stdout.on('data', (chunk) => consumeStdout(chunk, ownedCapture));
+        child.stderr.on('data', (chunk) => {
+            console.error('[Clueless Native] System audio helper:', chunk.toString('utf8').trim());
+        });
+        child.on('error', (error) => {
+            if (capture === ownedCapture) {
+                sendPacket({ type: 'error', message: errorMessage(error), code: 1102 }, ownedCapture);
+                capture = null;
+            }
+        });
+        child.on('exit', (code, signal) => {
+            if (capture === ownedCapture) {
+                sendPacket({ type: 'status', state: 'exited', code, signal }, ownedCapture);
+                capture = null;
+            }
+        });
+
+        child.stdin.write(`${JSON.stringify({ command: 'start', sampleRate })}\n`);
+
+        return { started: true, alreadyRunning: false };
+    }
+
+    function windowForEvent(event) {
+        return BrowserWindow.fromWebContents(event.sender);
+    }
+
+    function callLifecycleState(window) {
+        let state = callLifecycleStates.get(window);
+        if (state) return state;
+
+        state = {
+            allowClose: false,
+            busy: false,
+            generationToken: null,
+            pendingCloseRequest: null,
+        };
+        callLifecycleStates.set(window, state);
+
+        window.on('close', (event) => {
+            if (!state.busy || state.allowClose) return;
+
+            event.preventDefault();
+            if (state.pendingCloseRequest) return;
+
+            state.pendingCloseRequest = {
+                generationToken: state.generationToken,
+                requestToken: randomUUID(),
+            };
+            if (!window.webContents.isDestroyed()) {
+                window.webContents.send(CALL_CLOSE_REQUEST_CHANNEL, state.pendingCloseRequest);
+            }
+        });
+        window.once('closed', () => {
+            busyCallWindows.delete(window);
+            callLifecycleStates.delete(window);
+            resolveQuitWhenDrained();
+        });
+
+        return state;
+    }
+
+    function requireLifecycleWindow(event) {
+        const window = windowForEvent(event);
+        if (!window) {
+            throw new Error('No window found for call lifecycle request.');
+        }
+
+        return window;
+    }
+
+    function requireLifecyclePayload(payload) {
+        if (!payload || typeof payload !== 'object' || typeof payload.busy !== 'boolean') {
+            throw new Error('Call lifecycle busy state must be provided.');
+        }
+
+        return payload;
+    }
+
+    function requirePendingCloseRequest(state, request) {
+        if (!state.pendingCloseRequest) {
+            throw new Error('No pending close request exists for this window.');
+        }
+        if (
+            !request ||
+            typeof request !== 'object' ||
+            request.generationToken !== state.pendingCloseRequest.generationToken ||
+            request.requestToken !== state.pendingCloseRequest.requestToken
+        ) {
+            throw new Error('Call lifecycle close request token is stale or invalid.');
+        }
+
+        const pending = state.pendingCloseRequest;
+        state.pendingCloseRequest = null;
+        return pending;
+    }
+
+    function resolveQuitWhenDrained() {
+        if (!quitAttempt || busyCallWindows.size > 0) return;
+
+        const attempt = quitAttempt;
+        quitAttempt = null;
+        void stopCapture({ force: true });
+        attempt.resolve(true);
+    }
+
+    function cancelDeferredQuit() {
+        if (!quitAttempt) return;
+
+        const attempt = quitAttempt;
+        quitAttempt = null;
+        attempt.resolve(false);
+    }
+
+    return {
+        async afterReady() {
+            if (displayMediaHandlerInstalled) {
+                return;
+            }
+
+            session.defaultSession.setDisplayMediaRequestHandler(
+                async (request, callback) => {
+                    if (!isTrustedDisplayMediaRequest(request)) {
+                        console.warn('[Clueless Native] Rejected an untrusted display media request.');
+                        callback();
+                        return;
+                    }
+
+                    try {
+                        const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] });
+                        const source = sources.find((item) => item.id.startsWith('screen:')) || sources[0];
+                        if (source) {
+                            callback({
+                                video: source,
+                                ...(platform === 'win32' ? { audio: 'loopback' } : {}),
+                            });
+                        } else {
+                            callback();
+                        }
+                    } catch (error) {
+                        console.error('[Clueless Native] Unable to select display media.', errorMessage(error));
+                        callback();
+                    }
+                },
+                { useSystemPicker: true },
+            );
+            displayMediaHandlerInstalled = true;
+        },
+
+        beforeQuit() {
+            if (busyCallWindows.size === 0) {
+                void stopCapture({ force: true });
+                return { deferred: false };
+            }
+
+            if (!quitAttempt) {
+                let resolveCompletion;
+                const completion = new Promise((resolve) => {
+                    resolveCompletion = resolve;
+                });
+                quitAttempt = {
+                    completion,
+                    resolve: resolveCompletion,
+                };
+            }
+
+            for (const window of busyCallWindows) {
+                window.close();
+            }
+
+            return { deferred: true, completion: quitAttempt.completion };
+        },
+
+        ipcHandlers: {
+            'nativephp:permissions:check': async (_event, permission) => ({
+                success: true,
+                permission,
+                status: checkPermission(permission),
+            }),
+
+            'nativephp:permissions:request': async (_event, permission) => ({
+                success: true,
+                permission,
+                status: await requestPermission(permission),
+            }),
+
+            'nativephp:permissions:get-all': async () => ({
+                success: true,
+                permissions: {
+                    microphone: checkPermission('microphone'),
+                    screen: checkPermission('screen'),
+                },
+            }),
+
+            'nativephp:permissions:open-settings': async (_event, permission) => {
+                validatePermission(permission);
+                const pane = permission === 'microphone' ? 'Privacy_Microphone' : 'Privacy_ScreenCapture';
+                await shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${pane}`);
+                return { success: true };
+            },
+
+            'nativephp:system-audio:is-available': async () => ({
+                available: await helperIsAvailable(),
+            }),
+
+            'nativephp:system-audio:start': startCapture,
+
+            'nativephp:system-audio:stop': async (event) => {
+                if (capture && capture.owner.id !== event.sender.id) {
+                    throw new Error('System audio capture is owned by another window.');
+                }
+                return stopCapture();
+            },
+
+            'nativephp:call-lifecycle:set-busy': async (event, rawPayload) => {
+                const payload = requireLifecyclePayload(rawPayload);
+                const window = requireLifecycleWindow(event);
+                const state = callLifecycleState(window);
+
+                if (payload.busy) {
+                    if (state.busy) {
+                        return { success: true, busy: true, generationToken: state.generationToken };
+                    }
+                    if (quitAttempt) {
+                        throw new Error('A call cannot start while application shutdown is pending.');
+                    }
+
+                    state.allowClose = false;
+                    state.busy = true;
+                    state.generationToken = randomUUID();
+                    busyCallWindows.add(window);
+                    return { success: true, busy: true, generationToken: state.generationToken };
+                }
+
+                if (!state.busy || payload.generationToken !== state.generationToken) {
+                    throw new Error('Call lifecycle generation is stale or invalid.');
+                }
+                if (state.pendingCloseRequest) {
+                    throw new Error('Call lifecycle generation cannot be released while a close request is pending.');
+                }
+
+                state.busy = false;
+                state.generationToken = null;
+                busyCallWindows.delete(window);
+                resolveQuitWhenDrained();
+                return { success: true, busy: false };
+            },
+
+            'nativephp:call-lifecycle:complete-close': async (event, request) => {
+                const window = requireLifecycleWindow(event);
+                const state = callLifecycleState(window);
+                requirePendingCloseRequest(state, request);
+                state.busy = false;
+                state.generationToken = null;
+                state.allowClose = true;
+                busyCallWindows.delete(window);
+                setTimeout(() => window.close(), 0);
+                return { success: true };
+            },
+
+            'nativephp:call-lifecycle:cancel-close': async (event, request) => {
+                const state = callLifecycleState(requireLifecycleWindow(event));
+                requirePendingCloseRequest(state, request);
+                state.allowClose = false;
+                cancelDeferredQuit();
+                return { success: true, busy: state.busy };
+            },
+
+            'screen-protection:check-support': async (event) => {
+                const window = windowForEvent(event);
+                return {
+                    supported: Boolean(window && typeof window.setContentProtection === 'function'),
+                    platform: process.platform,
+                };
+            },
+
+            'screen-protection:set': async (event, enabled) => {
+                const window = windowForEvent(event);
+                if (!window) {
+                    return { success: false, error: 'No window found.' };
+                }
+                window.setContentProtection(Boolean(enabled));
+                return { success: true, enabled: Boolean(enabled) };
+            },
+
+            'screen-protection:get-status': async () => ({
+                status: 'unknown',
+                reason: 'Electron does not expose content-protection state.',
+            }),
+
+            'overlay-mode:check-support': async (event) => ({
+                supported: Boolean(windowForEvent(event)),
+                platform: process.platform,
+            }),
+
+            'overlay-mode:set-always-on-top': async (event, enabled, level) => {
+                const window = windowForEvent(event);
+                if (!window) {
+                    return { success: false, error: 'No window found.' };
+                }
+                window.setAlwaysOnTop(Boolean(enabled), level);
+                return { success: true, alwaysOnTop: Boolean(enabled) };
+            },
+
+            'overlay-mode:set-opacity': async (event, opacity) => {
+                const window = windowForEvent(event);
+                if (!window) {
+                    return { success: false, error: 'No window found.' };
+                }
+                const value = Math.max(0.2, Math.min(1, Number(opacity)));
+                window.setOpacity(value);
+                return { success: true, opacity: value };
+            },
+
+            'overlay-mode:get-opacity': async (event) => {
+                const window = windowForEvent(event);
+                return window ? { success: true, opacity: window.getOpacity() } : { success: false, error: 'No window found.' };
+            },
+
+            'overlay-mode:set-background-color': async (event, color) => {
+                const window = windowForEvent(event);
+                if (!window || typeof color !== 'string') {
+                    return { success: false, error: 'Invalid window or color.' };
+                }
+                window.setBackgroundColor(color);
+                return { success: true, color };
+            },
+
+            'nativephp:context-menu': async (event, template) => {
+                const window = windowForEvent(event);
+                const safeTemplate = Array.isArray(template) ? template.map(({ label, type, enabled }) => ({ label, type, enabled })) : [];
+                Menu.buildFromTemplate(safeTemplate).popup({ window });
+                return { success: true };
+            },
+        },
+    };
+}
+
+export default createNativePhpExtension;

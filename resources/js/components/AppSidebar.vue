@@ -10,7 +10,7 @@ import AppLogo from './AppLogo.vue';
 const mainNavItems: NavItem[] = [
     {
         title: 'Realtime Agent',
-        href: '/realtime-agent-v2',
+        href: '/realtime-agent',
         icon: Phone,
     },
     {
@@ -55,7 +55,7 @@ const footerNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link href="/realtime-agent-v2">
+                        <Link href="/realtime-agent">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>

@@ -4,11 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
+import { RadioTower } from 'lucide-vue-next';
 
 const sidebarNavItems: NavItem[] = [
     {
         title: 'API Keys',
         href: '/settings/api-keys',
+    },
+    {
+        title: 'Recall',
+        href: '/settings/recall',
+        icon: RadioTower,
+    },
+    {
+        title: 'Sales Tools',
+        href: '/settings/sales-tools',
     },
     {
         title: 'Appearance',
@@ -36,6 +46,7 @@ const currentPath = page.props.ziggy?.location ? new URL(page.props.ziggy.locati
                         as-child
                     >
                         <Link :href="item.href">
+                            <component v-if="item.icon" :is="item.icon" class="size-4" />
                             {{ item.title }}
                         </Link>
                     </Button>

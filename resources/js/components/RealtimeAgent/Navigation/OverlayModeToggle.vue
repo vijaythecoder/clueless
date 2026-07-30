@@ -32,9 +32,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useSettingsStore } from '@/stores/settings';
 import { useOverlayMode } from '@/composables/useOverlayMode';
+import { useSettingsStore } from '@/stores/settings';
+import { computed } from 'vue';
 
 // Store
 const settingsStore = useSettingsStore();
@@ -44,13 +44,13 @@ const { isOverlayMode: overlayModeState, toggleOverlayMode: toggleOverlayModeCom
 
 // Computed - use the composable's state which is the source of truth
 const isOverlayMode = computed(() => overlayModeState.value);
-const overlayStatusText = computed(() => isOverlayMode.value ? 'Normal' : 'Overlay');
+const overlayStatusText = computed(() => (isOverlayMode.value ? 'Normal' : 'Overlay'));
 
 // Methods
-const toggleOverlayMode = () => {
+const toggleOverlayMode = async () => {
     // Use the composable's toggle function which handles window transparency
-    const result = toggleOverlayModeComposable();
-    
+    const result = await toggleOverlayModeComposable();
+
     // Keep the settings store in sync with the composable state
     // Use setOverlayMode to ensure the body class is properly managed
     if (result) {

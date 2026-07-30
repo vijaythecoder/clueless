@@ -1,12 +1,13 @@
 <?php
 
-use Illuminate\Support\Facades\Cache;
+use App\Models\SecureSetting;
+use App\Services\ApiKeyService;
 use Tests\Traits\MocksOpenAI;
 
 uses(MocksOpenAI::class);
 
 beforeEach(function () {
-    Cache::flush();
+    config()->set('openai.api_key', null);
 });
 
 test('api keys settings page can be viewed', function () {
@@ -19,8 +20,8 @@ test('api keys settings page can be viewed', function () {
         );
 });
 
-test('api keys page shows when key exists in cache', function () {
-    Cache::put('app_openai_api_key', mockApiKey());
+test('api keys page shows when key exists in secure settings', function () {
+    app(ApiKeyService::class)->setApiKey(mockApiKey());
 
     $response = $this->get('/settings/api-keys');
 
@@ -54,7 +55,7 @@ test('can update api key with valid key', function () {
     $response->assertRedirect('/settings/api-keys')
         ->assertSessionHas('success', 'API key updated successfully.');
 
-    expect(Cache::get('app_openai_api_key'))->toBe($apiKey);
+    expect(SecureSetting::where('key', SecureSetting::OPENAI_API_KEY)->value('value'))->toBe($apiKey);
 });
 
 test('cannot update api key with invalid key', function () {
@@ -65,7 +66,7 @@ test('cannot update api key with invalid key', function () {
     ]);
 
     $response->assertSessionHasErrors(['openai_api_key']);
-    expect(Cache::has('app_openai_api_key'))->toBeFalse();
+    expect(SecureSetting::where('key', SecureSetting::OPENAI_API_KEY)->exists())->toBeFalse();
 });
 
 test('cannot update api key with short key', function () {
@@ -83,14 +84,14 @@ test('cannot update api key without providing key', function () {
 });
 
 test('can delete api key', function () {
-    Cache::put('app_openai_api_key', mockApiKey());
+    app(ApiKeyService::class)->setApiKey(mockApiKey());
 
     $response = $this->delete('/settings/api-keys');
 
     $response->assertRedirect('/settings/api-keys')
         ->assertSessionHas('success', 'API key deleted successfully.');
 
-    expect(Cache::has('app_openai_api_key'))->toBeFalse();
+    expect(SecureSetting::where('key', SecureSetting::OPENAI_API_KEY)->exists())->toBeFalse();
 });
 
 test('deleting non-existent api key still succeeds', function () {
@@ -108,7 +109,7 @@ test('api key validation handles connection errors gracefully', function () {
     ]);
 
     $response->assertSessionHasErrors(['openai_api_key']);
-    expect(Cache::has('app_openai_api_key'))->toBeFalse();
+    expect(SecureSetting::where('key', SecureSetting::OPENAI_API_KEY)->exists())->toBeFalse();
 });
 
 test('api key is properly validated with OpenAI before saving', function () {

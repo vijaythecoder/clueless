@@ -215,7 +215,7 @@
                 <h3 class="mb-4 text-lg font-semibold">Import Variables</h3>
 
                 <div class="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
-                    <input type="file" accept=".json" @change="handleFileUpload" class="hidden" ref="fileInput" />
+                    <input ref="fileInput" type="file" accept=".json" @change="handleFileUpload" class="hidden" />
                     <svg class="mx-auto mb-4 h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                             stroke-linecap="round"
@@ -224,7 +224,7 @@
                             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                         />
                     </svg>
-                    <Button @click="$refs.fileInput.click()" class="omega-button omega-button-primary"> Choose JSON File </Button>
+                    <Button @click="fileInput?.click()" class="omega-button omega-button-primary"> Choose JSON File </Button>
                     <p class="mt-2 text-sm text-gray-500">or drag and drop</p>
                 </div>
 
@@ -272,6 +272,7 @@ const selectedCategory = ref<string | null>(null);
 const showCreateDialog = ref(false);
 const showImportDialog = ref(false);
 const editingVariable = ref<Variable | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
 
 // Form Data
 const formData = ref({

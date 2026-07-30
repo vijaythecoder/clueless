@@ -71,6 +71,10 @@ That's it! The app will handle database setup automatically.
 
 > **Need detailed setup?** Check out our [Contributing Guide](CONTRIBUTING.md) for complete installation instructions, environment configuration, and development commands.
 
+### Microsoft Teams Capture
+
+Teams meeting capture uses Recall.ai and a dedicated, deny-by-default webhook ingress process. See the [Recall Teams setup guide](docs/recall-teams-setup.md) before exposing a local endpoint or creating a meeting bot.
+
 ## Tech Stack
 
 - **Backend**: Laravel 12.0 (PHP 8.2+)

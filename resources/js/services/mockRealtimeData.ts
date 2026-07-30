@@ -1,4 +1,4 @@
-import type { TranscriptGroup, CustomerInsight, ContextualCoaching } from '@/types/realtime';
+import type { ContextualCoaching, CustomerInsight, TranscriptGroup } from '@/types/realtime';
 
 // Mock conversation data
 const mockConversationFlow = [
@@ -19,7 +19,9 @@ const mockConversationFlow = [
     },
     {
         role: 'salesperson',
-        messages: ["I noticed your company has been growing rapidly. We help businesses like yours streamline their operations with our automation platform. Are you currently using any automation tools?"],
+        messages: [
+            'I noticed your company has been growing rapidly. We help businesses like yours streamline their operations with our automation platform. Are you currently using any automation tools?',
+        ],
         timestamp: Date.now() - 285000,
     },
     {
@@ -29,25 +31,31 @@ const mockConversationFlow = [
     },
     {
         role: 'salesperson',
-        messages: ["I hear that a lot. Integration issues can really slow things down. What specific challenges are you facing with your current setup?"],
+        messages: [
+            'I hear that a lot. Integration issues can really slow things down. What specific challenges are you facing with your current setup?',
+        ],
         timestamp: Date.now() - 275000,
     },
     {
         role: 'customer',
         messages: [
-            "Well, our sales team uses one CRM, marketing uses a different platform, and our customer service is on another system entirely.",
-            "We spend hours every week just moving data between systems manually."
+            'Well, our sales team uses one CRM, marketing uses a different platform, and our customer service is on another system entirely.',
+            'We spend hours every week just moving data between systems manually.',
         ],
         timestamp: Date.now() - 270000,
     },
     {
         role: 'salesperson',
-        messages: ["That sounds frustrating and time-consuming. Our platform actually specializes in connecting disparate systems. We've helped companies reduce manual data entry by up to 80%."],
+        messages: [
+            "That sounds frustrating and time-consuming. Our platform actually specializes in connecting disparate systems. We've helped companies reduce manual data entry by up to 80%.",
+        ],
         timestamp: Date.now() - 265000,
     },
     {
         role: 'customer',
-        messages: ["That's impressive. But we've looked at integration platforms before. They always seem too complex or too expensive for what we need."],
+        messages: [
+            "That's impressive. But we've looked at integration platforms before. They always seem too complex or too expensive for what we need.",
+        ],
         timestamp: Date.now() - 260000,
     },
     {
@@ -57,12 +65,14 @@ const mockConversationFlow = [
     },
     {
         role: 'customer',
-        messages: ["Probably around 10,000 records across all systems. But it varies month to month."],
+        messages: ['Probably around 10,000 records across all systems. But it varies month to month.'],
         timestamp: Date.now() - 250000,
     },
     {
         role: 'salesperson',
-        messages: ["Based on that volume, you'd fit perfectly into our Growth tier, which is $299/month. That includes all the connectors you'd need plus our visual workflow builder."],
+        messages: [
+            "Based on that volume, you'd fit perfectly into our Growth tier, which is $299/month. That includes all the connectors you'd need plus our visual workflow builder.",
+        ],
         timestamp: Date.now() - 245000,
     },
     {
@@ -72,7 +82,9 @@ const mockConversationFlow = [
     },
     {
         role: 'salesperson',
-        messages: ["Most clients are up and running within 2 weeks. We provide a dedicated onboarding specialist and can start with just one integration to prove the value."],
+        messages: [
+            'Most clients are up and running within 2 weeks. We provide a dedicated onboarding specialist and can start with just one integration to prove the value.',
+        ],
         timestamp: Date.now() - 235000,
     },
     {
@@ -82,17 +94,19 @@ const mockConversationFlow = [
     },
     {
         role: 'salesperson',
-        messages: ["Absolutely! I can send you a detailed proposal today. Would it make sense to schedule a 30-minute demo for you and your team later this week?"],
+        messages: [
+            'Absolutely! I can send you a detailed proposal today. Would it make sense to schedule a 30-minute demo for you and your team later this week?',
+        ],
         timestamp: Date.now() - 225000,
     },
     {
         role: 'customer',
-        messages: ["Yes, that would be helpful. How about Thursday afternoon?"],
+        messages: ['Yes, that would be helpful. How about Thursday afternoon?'],
         timestamp: Date.now() - 220000,
     },
     {
         role: 'salesperson',
-        messages: ["Thursday afternoon works great. I have slots at 2 PM or 3:30 PM. Which works better for you?"],
+        messages: ['Thursday afternoon works great. I have slots at 2 PM or 3:30 PM. Which works better for you?'],
         timestamp: Date.now() - 215000,
     },
     {
@@ -102,7 +116,9 @@ const mockConversationFlow = [
     },
     {
         role: 'salesperson',
-        messages: ["Perfect! I'll send that right after our call along with the proposal. Just to confirm, I have your email as john.smith@techcorp.com, correct?"],
+        messages: [
+            "Perfect! I'll send that right after our call along with the proposal. Just to confirm, I have your email as john.smith@techcorp.com, correct?",
+        ],
         timestamp: Date.now() - 205000,
     },
     {
@@ -112,7 +128,7 @@ const mockConversationFlow = [
     },
     {
         role: 'salesperson',
-        messages: ["Excellent! One last thing - who else from your team should I include in the demo invite?"],
+        messages: ['Excellent! One last thing - who else from your team should I include in the demo invite?'],
         timestamp: Date.now() - 195000,
     },
     {
@@ -122,12 +138,14 @@ const mockConversationFlow = [
     },
     {
         role: 'salesperson',
-        messages: ["Got it. I'll include them both. Thanks for your time today, John. I'm excited to show you how we can solve those integration challenges!"],
+        messages: [
+            "Got it. I'll include them both. Thanks for your time today, John. I'm excited to show you how we can solve those integration challenges!",
+        ],
         timestamp: Date.now() - 185000,
     },
     {
         role: 'customer',
-        messages: ["Thanks. Talk to you Thursday."],
+        messages: ['Thanks. Talk to you Thursday.'],
         timestamp: Date.now() - 180000,
     },
     {
@@ -142,7 +160,7 @@ const mockInsights: CustomerInsight[] = [
     {
         id: '1',
         type: 'pain_point',
-        content: 'Systems don\'t integrate well - manual data transfer between CRM, marketing, and customer service',
+        content: "Systems don't integrate well - manual data transfer between CRM, marketing, and customer service",
         confidence: 0.95,
         timestamp: Date.now() - 270000,
     },
@@ -221,7 +239,7 @@ const mockCustomerProfile = {
 // Performance metrics
 const mockMetrics = {
     talkRatio: 45, // Salesperson talked 45% of the time
-    sentiment: 'positive',
+    sentiment: 'positive' as const,
     engagementScore: 78,
     objectionsHandled: 2,
     painPointsIdentified: 3,
@@ -231,7 +249,7 @@ const mockMetrics = {
 class MockRealtimeDataService {
     private conversationIndex = 0;
     private isActive = false;
-    private updateInterval: NodeJS.Timeout | null = null;
+    private updateInterval: ReturnType<typeof setInterval> | null = null;
 
     // Get initial state
     getInitialState() {
@@ -263,7 +281,7 @@ class MockRealtimeDataService {
             }
 
             const currentMessage = mockConversationFlow[this.conversationIndex];
-            
+
             // Send transcript update
             onUpdate({
                 type: 'transcript',
@@ -275,11 +293,9 @@ class MockRealtimeDataService {
             });
 
             // Send related insights
-            const relatedInsights = mockInsights.filter(
-                insight => Math.abs(insight.timestamp - currentMessage.timestamp) < 10000
-            );
-            
-            relatedInsights.forEach(insight => {
+            const relatedInsights = mockInsights.filter((insight) => Math.abs(insight.timestamp - currentMessage.timestamp) < 10000);
+
+            relatedInsights.forEach((insight) => {
                 setTimeout(() => {
                     onUpdate({
                         type: 'insight',
@@ -289,11 +305,9 @@ class MockRealtimeDataService {
             });
 
             // Send related coaching
-            const relatedCoaching = mockCoachingData.filter(
-                coaching => Math.abs(coaching.timestamp - currentMessage.timestamp) < 10000
-            );
-            
-            relatedCoaching.forEach(coaching => {
+            const relatedCoaching = mockCoachingData.filter((coaching) => Math.abs(coaching.timestamp - currentMessage.timestamp) < 10000);
+
+            relatedCoaching.forEach((coaching) => {
                 setTimeout(() => {
                     onUpdate({
                         type: 'coaching',

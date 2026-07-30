@@ -1,0 +1,11 @@
+{
+  "event": "bot.in_call_recording",
+  "data": {
+    "bot": {"id": "bot_test_123"},
+    "data": {
+      "code": "in_call_recording",
+      "sub_code": null,
+      "updated_at": "2026-07-27T12:00:02Z"
+    }
+  }
+}
